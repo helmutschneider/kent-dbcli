@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.IO;
 using System.Threading.Tasks;
-using System.Text.RegularExpressions;
+
 using Microsoft.Data.SqlClient;
 using Microsoft.SqlTools.ServiceLayer.Scripting;
 using Microsoft.SqlTools.ServiceLayer.Scripting.Contracts;
+
 
 namespace Kent.DbCli;
 
@@ -14,8 +16,12 @@ using CommandFn = Func<string[], Task<int>>;
 
 class Program
 {
-    const string ARGUMENT_CONNECTION_STRING = "connection-string";
-    const string ARGUMENT_OUT_FILE = "out-file";
+    static readonly string[] ARGUMENT_HOST = new[] { "-h", "--host" };
+    static readonly string[] ARGUMENT_DATABASE = new[] { "-d", "--database" };
+    static readonly string[] ARGUMENT_USER = new[] { "-u", "--user" };
+    static readonly string[] ARGUMENT_PASSWORD = new[] { "-p", "--password" };
+    static readonly string[] ARGUMENT_CONNECTION_STRING = new[] { "-c", "--connection-string" };
+    static readonly string[] ARGUMENT_OUT_FILE = new[] { "-o", "--out-file" };
 
     static readonly Dictionary<string, CommandFn> _commands = new()
     {
@@ -42,32 +48,46 @@ class Program
         Environment.Exit(code);
     }
 
-    static string? GetNamedArgument(string[] args, string name)
+    static string GetNamedArgument(string[] args, params string[] names)
     {
+        Debug.Assert(names.Length != 0);
+
         for (var i = 0; i < args.Length; ++i)
         {
-            var arg = args[i];
-            var match = Regex.Match(arg, @"^--(\S+)");
-
-            if (match.Success && match.Groups[1].Value == name)
+            var arg = args[i].Trim();
+            if (names.Contains(arg))
             {
                 return (i < (args.Length - 1)) ? args[i + 1] : string.Empty;
             }
         }
-        return null;
+
+        return string.Empty;
     }
 
     static void Usage()
     {
+        static void ArgumentUsage(string[] names, string description)
+        {
+            Console.WriteLine("  {0,-24} {1}", string.Join(", ", names), description);
+        }
+
         Console.WriteLine("Usage:");
         foreach (var (name, _) in _commands)
         {
-            Console.WriteLine($"  {name} --connection-string connstr [--out-file path]");
+            Console.WriteLine($"  {name}");
         }
         Console.WriteLine(string.Empty);
+        Console.WriteLine("Arguments:");
+        ArgumentUsage(ARGUMENT_HOST, "database host");
+        ArgumentUsage(ARGUMENT_DATABASE, "database name");
+        ArgumentUsage(ARGUMENT_USER, "user");
+        ArgumentUsage(ARGUMENT_PASSWORD, "password");
+        ArgumentUsage(ARGUMENT_CONNECTION_STRING, "raw connection string");
+        ArgumentUsage(ARGUMENT_OUT_FILE, "out file");
+        Console.WriteLine(string.Empty);
         Console.WriteLine("Examples:");
-        Console.WriteLine("  dump-schema \\\n    --connection-string 'Data Source=localhost;Initial Catalog=dbname;User ID=sa;Password=password'");
-        Console.WriteLine("  dump-database \\\n    --connection-string 'Data Source=localhost;Initial Catalog=dbname;User ID=sa;Password=password'");
+        Console.WriteLine("  dump-schema   -h localhost -d dbname -u sa -p password");
+        Console.WriteLine("  dump-database -h localhost -d dbname -u sa -p password");
     }
 
     static Task<int> DumpSchemaAsync(string[] args)
@@ -82,14 +102,6 @@ class Program
 
     static async Task<int> RunScriptRequestAsync(string[] args, string typeOfData)
     {
-        var connectionString = GetNamedArgument(args, ARGUMENT_CONNECTION_STRING);
-
-        if (string.IsNullOrEmpty(connectionString))
-        {
-            Usage();
-            return 1;
-        }
-
         var outfile = GetNamedArgument(args, ARGUMENT_OUT_FILE);
 
         if (string.IsNullOrEmpty(outfile))
@@ -98,20 +110,41 @@ class Program
             outfile = $"script-{dt}.sql";
         }
 
+        // the 'FilePath' property must contain a directory when given to the scripting service.
+        // if none is given we just default to the current directory.
         if (string.IsNullOrEmpty(Path.GetDirectoryName(outfile)))
         {
             outfile = Path.Join(Directory.GetCurrentDirectory(), outfile);
         }
 
-        var connStrBuilder = new SqlConnectionStringBuilder(connectionString)
+        var connStr = GetNamedArgument(args, ARGUMENT_CONNECTION_STRING);
+
+        if (string.IsNullOrEmpty(connStr))
         {
-            CommandTimeout = 10,
-            ConnectTimeout = 10,
-            Encrypt = false,
-        };
+            var builder = new SqlConnectionStringBuilder
+            {
+                CommandTimeout = 10,
+                ConnectTimeout = 10,
+                DataSource = GetNamedArgument(args, ARGUMENT_HOST),
+                Encrypt = false,
+                InitialCatalog = GetNamedArgument(args, ARGUMENT_DATABASE),
+                IntegratedSecurity = false,
+                UserID = GetNamedArgument(args, ARGUMENT_USER),
+                Password = GetNamedArgument(args, ARGUMENT_PASSWORD),
+            };
+
+            if (string.IsNullOrEmpty(builder.DataSource))
+            {
+                Usage();
+                return 1;
+            }
+
+            connStr = builder.ConnectionString;
+        }
+
         var opts = new ScriptingParams
         {
-            ConnectionString = connStrBuilder.ConnectionString,
+            ConnectionString = connStr,
             ExcludeTypes = new List<string>()
             {
                 // make sure we don't include any 'CREATE DATABASE' queries in the dump.
@@ -141,7 +174,7 @@ class Program
             await scripting.HandleScriptExecuteRequest(opts, ctx);
             while (ctx.Status == ScriptStatus.InProgress)
             {
-                await Task.Delay(500);
+                await Task.Delay(250);
             }
         }
 
