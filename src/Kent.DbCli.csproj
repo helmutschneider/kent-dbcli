@@ -19,6 +19,10 @@
     <ServiceLayerPath>..\servicelayer-win-x64</ServiceLayerPath>
   </PropertyGroup>
 
+  <PropertyGroup Condition="$([MSBuild]::IsOsPlatform('Linux'))">
+    <ServiceLayerPath>..\servicelayer-rhel-x64</ServiceLayerPath>
+  </PropertyGroup>
+
   <ItemGroup>
     <Reference Include="MicrosoftSqlToolsServiceLayer.dll">
       <HintPath>$(ServiceLayerPath)\MicrosoftSqlToolsServiceLayer.dll</HintPath>

@@ -12,7 +12,7 @@ env:
   DATABASE_HOST: 127.0.0.1
   DATABASE_NAME: kent
   DATABASE_USER: sa
-  DATABASE_PASSWORD: OB5PmQPpWM5H30ZDkRjiFA
+  DATABASE_PASSWORD: 8rLCbRdR
   DUMP_SCHEMA: |
     CREATE TABLE [Car] (
       [Id] INTEGER PRIMARY KEY NOT NULL IDENTITY(1, 1),
@@ -22,7 +22,6 @@ env:
       VALUES ('Volvo'),
              ('Toyota'),
              ('Tesla')
-  DUMP_FILE: dump.sql
 jobs:
   test:
     runs-on: ubuntu-22.04
@@ -35,11 +34,16 @@ jobs:
           ACCEPT_EULA: y
           MSSQL_SA_PASSWORD: ${{ env.DATABASE_PASSWORD }}
           MSSQL_PID: Express
-          MSSQL_COLLATION: Latin1_General_100_CI_AI_SC_UTF8
         ports:
           - 1433:1433
     steps:
-      - name: Create schema
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Create database schema
         run: |
           sleep 5
 
@@ -59,26 +63,17 @@ jobs:
             -Q "${DUMP_SCHEMA}"
 
           echo "Schema created."
-      - name: Install .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Dump database
+      - name: Create test dumps
         run: |
-          dotnet run --project src/Kent.DbCli.csproj -- \
-            dump-database \
-            -h "${DATABASE_HOST}" \
-            -d "${DATABASE_NAME}" \
-            -u "${DATABASE_USER}" \
-            -p "${DATABASE_PASSWORD}" \
-            -o "${DUMP_FILE}"
-
-          if ! [ -e "${DUMP_FILE}" ]; then
-            exit 1
-          fi
-      - name: Upload the dump
+          for cmd in "dump-schema" "dump-database"; do
+            dotnet run --project src/Kent.DbCli.csproj -- \
+              "${cmd}" \
+              -h "${DATABASE_HOST}" \
+              -d "${DATABASE_NAME}" \
+              -u "${DATABASE_USER}" \
+              -p "${DATABASE_PASSWORD}"
+          done
+      - name: Upload the dumps
         uses: actions/upload-artifact@v4
         with:
-          path: ${{ env.DUMP_FILE }}
+          path: '${{ github.workspace }}/*.sql'
