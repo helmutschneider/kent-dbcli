@@ -11,15 +11,15 @@
 
   <!-- https://github.com/microsoft/sqltoolsservice/releases/tag/4.5.0.15 -->
 
-  <PropertyGroup Condition="$([MSBuild]::IsOsPlatform('OSX'))">
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'osx-arm64' Or ($([MSBuild]::IsOsPlatform('OSX')) And '$(RuntimeIdentifier)' == '')">
     <ServiceLayerPath>..\servicelayer-osx-arm64</ServiceLayerPath>
   </PropertyGroup>
 
-  <PropertyGroup Condition="$([MSBuild]::IsOsPlatform('Windows'))">
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' Or ($([MSBuild]::IsOsPlatform('Windows')) And '$(RuntimeIdentifier)' == '')">
     <ServiceLayerPath>..\servicelayer-win-x64</ServiceLayerPath>
   </PropertyGroup>
 
-  <PropertyGroup Condition="$([MSBuild]::IsOsPlatform('Linux'))">
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64' Or ($([MSBuild]::IsOsPlatform('Linux')) And '$(RuntimeIdentifier)' == '')">
     <ServiceLayerPath>..\servicelayer-rhel-x64</ServiceLayerPath>
   </PropertyGroup>
 
@@ -77,7 +77,7 @@
     </Reference>
   </ItemGroup>
 
-  <ItemGroup Condition="$([MSBuild]::IsOsPlatform('Windows'))">
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' Or ($([MSBuild]::IsOsPlatform('Windows')) And '$(RuntimeIdentifier)' == '')">
     <None Include="$(ServiceLayerPath)\Microsoft.Data.SqlClient.SNI.dll" CopyToOutputDirectory="Always" />
   </ItemGroup>
 
