@@ -13,14 +13,21 @@ The following objects are included in the dump:
 - foreign keys
 - table data, see `dump-database`
 
+## Usage
+```shell
+Usage:
+  dump-schema --connection-string connstr [--out-file path]
+  dump-database --connection-string connstr [--out-file path]
+```
+
 To dump the schema only:
 ```shell
 dotnet run --project src/Kent.DbCli.csproj \
-  dump-schema 'Data Source=localhost;Initial Catalog=dbname;User ID=sa;Password=password'
+  dump-schema --connection-string 'Data Source=localhost;Initial Catalog=dbname;User ID=sa;Password=password'
 ```
 
 To dump the schema and data:
 ```shell
 dotnet run --project src/Kent.DbCli.csproj \
-  dump-database 'Data Source=localhost;Initial Catalog=dbname;User ID=sa;Password=password'
+  dump-database --connection-string 'Data Source=localhost;Initial Catalog=dbname;User ID=sa;Password=password'
 ```

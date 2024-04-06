@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
 using Microsoft.SqlTools.ServiceLayer.Scripting;
 using Microsoft.SqlTools.ServiceLayer.Scripting.Contracts;
@@ -13,6 +14,9 @@ using CommandFn = Func<string[], Task<int>>;
 
 class Program
 {
+    const string ARGUMENT_CONNECTION_STRING = "connection-string";
+    const string ARGUMENT_OUT_FILE = "out-file";
+
     static readonly Dictionary<string, CommandFn> _commands = new()
     {
         {"dump-schema", DumpSchemaAsync},
@@ -21,7 +25,7 @@ class Program
 
     static async Task Main(string[] args)
     {
-        if (args.Length < 2)
+        if (args.Length == 0)
         {
             Usage();
             Environment.Exit(1);
@@ -38,38 +42,73 @@ class Program
         Environment.Exit(code);
     }
 
+    static string? GetNamedArgument(string[] args, string name)
+    {
+        for (var i = 0; i < args.Length; ++i)
+        {
+            var arg = args[i];
+            var match = Regex.Match(arg, @"^--(\S+)");
+
+            if (match.Success && match.Groups[1].Value == name)
+            {
+                return (i < (args.Length - 1)) ? args[i + 1] : string.Empty;
+            }
+        }
+        return null;
+    }
+
     static void Usage()
     {
         Console.WriteLine("Usage:");
         foreach (var (name, _) in _commands)
         {
-            Console.WriteLine($"  {name} [connection-string]");
+            Console.WriteLine($"  {name} --connection-string connstr [--out-file path]");
         }
+        Console.WriteLine(string.Empty);
         Console.WriteLine("Examples:");
-        Console.WriteLine("  dump-schema 'Data Source=localhost;Initial Catalog=dbname;User ID=sa;Password=password'");
-        Console.WriteLine("  dump-database 'Data Source=localhost;Initial Catalog=dbname;User ID=sa;Password=password'");
+        Console.WriteLine("  dump-schema \\\n    --connection-string 'Data Source=localhost;Initial Catalog=dbname;User ID=sa;Password=password'");
+        Console.WriteLine("  dump-database \\\n    --connection-string 'Data Source=localhost;Initial Catalog=dbname;User ID=sa;Password=password'");
     }
 
     static Task<int> DumpSchemaAsync(string[] args)
     {
-        return RunScriptRequestAsync(args[0], "SchemaOnly");
+        return RunScriptRequestAsync(args, "SchemaOnly");
     }
 
     static Task<int> DumpDatabaseAsync(string[] args)
     {
-        return RunScriptRequestAsync(args[0], "SchemaAndData");
+        return RunScriptRequestAsync(args, "SchemaAndData");
     }
 
-    static async Task<int> RunScriptRequestAsync(string connectionString, string typeOfData)
+    static async Task<int> RunScriptRequestAsync(string[] args, string typeOfData)
     {
+        var connectionString = GetNamedArgument(args, ARGUMENT_CONNECTION_STRING);
+
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            Usage();
+            return 1;
+        }
+
+        var outfile = GetNamedArgument(args, ARGUMENT_OUT_FILE);
+
+        if (string.IsNullOrEmpty(outfile))
+        {
+            var dt = DateTimeOffset.Now.ToString("yyyyMMdd-HHmmss");
+            outfile = $"script-{dt}.sql";
+        }
+
+        if (string.IsNullOrEmpty(Path.GetDirectoryName(outfile)))
+        {
+            outfile = Path.Join(Directory.GetCurrentDirectory(), outfile);
+        }
+
         var connStrBuilder = new SqlConnectionStringBuilder(connectionString)
         {
             CommandTimeout = 10,
             ConnectTimeout = 10,
             Encrypt = false,
         };
-        var dt = DateTimeOffset.Now.ToString("yyyyMMdd-HHmmss");
-        var path = Path.Join(Directory.GetCurrentDirectory(), $"script-{dt}.sql");
         var opts = new ScriptingParams
         {
             ConnectionString = connStrBuilder.ConnectionString,
@@ -78,7 +117,7 @@ class Program
                 // make sure we don't include any 'CREATE DATABASE' queries in the dump.
                 "database",
             },
-            FilePath = path,
+            FilePath = outfile,
             Operation = ScriptingOperationType.Create,
             ScriptDestination = "ToSingleFile",
             ScriptOptions = new ScriptOptions
@@ -109,7 +148,7 @@ class Program
         switch (ctx.Status)
         {
             case ScriptStatus.Success:
-                Console.WriteLine($"[OK] Script written to '{path}'");
+                Console.WriteLine($"[OK] Script written to '{opts.FilePath}'");
                 return 0;
             case ScriptStatus.Error:
                 return 1;
