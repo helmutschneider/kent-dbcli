@@ -20,10 +20,10 @@ class Program
     };
 
     static async Task Main(string[] args)
-    {        
+    {
         if (args.Length < 2)
         {
-            Usage();   
+            Usage();
             Environment.Exit(1);
             return;
         }
@@ -94,24 +94,27 @@ class Program
                 UniqueKeys = true,
             },
         };
+
         var ctx = new ScriptContext();
 
         using (var scripting = new ScriptingService())
         {
             await scripting.HandleScriptExecuteRequest(opts, ctx);
-            while (ctx.Status == ScriptStatus.Working)
+            while (ctx.Status == ScriptStatus.InProgress)
             {
                 await Task.Delay(500);
             }
         }
 
-        if (ctx.Status == ScriptStatus.Error)
+        switch (ctx.Status)
         {
-            Console.WriteLine(ctx.Output);
-            return 1;
+            case ScriptStatus.Success:
+                Console.WriteLine($"[OK] Script written to '{path}'");
+                return 0;
+            case ScriptStatus.Error:
+                return 1;
+            default:
+                throw new InvalidOperationException();
         }
-
-        Console.WriteLine($"[OK] Script written to '{path}'");
-        return 0;
     }
 }

@@ -68,6 +68,13 @@
     <Reference Include="Microsoft.SqlServer.Smo.Notebook.dll">
       <HintPath>$(ServiceLayerPath)\Microsoft.SqlServer.Smo.Notebook.dll</HintPath>
     </Reference>
+    <Reference Include="System.Security.Permissions.dll">
+      <HintPath>$(ServiceLayerPath)\System.Security.Permissions.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup Condition="$([MSBuild]::IsOsPlatform('Windows'))">
+    <None Include="$(ServiceLayerPath)\Microsoft.Data.SqlClient.SNI.dll" CopyToOutputDirectory="Always" />
   </ItemGroup>
 
 </Project>

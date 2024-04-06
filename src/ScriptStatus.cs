@@ -2,9 +2,9 @@ using System;
 
 namespace Kent.DbCli;
 
-enum ScriptStatus
+public enum ScriptStatus
 {
-    Working = 0,
+    InProgress = 0,
     Error,
-    Ok,
+    Success,
 }
