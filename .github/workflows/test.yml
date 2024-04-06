@@ -1,0 +1,84 @@
+name: Test
+on:
+  push:
+    branches:
+      - main
+# https://docs.github.com/en/actions/using-jobs/using-concurrency
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  DOTNET_VERSION: 6.0.x
+  DATABASE_HOST: 127.0.0.1
+  DATABASE_NAME: kent
+  DATABASE_USER: sa
+  DATABASE_PASSWORD: OB5PmQPpWM5H30ZDkRjiFA
+  DUMP_SCHEMA: |
+    CREATE TABLE [Car] (
+      [Id] INTEGER PRIMARY KEY NOT NULL IDENTITY(1, 1),
+      [Make] NVARCHAR(MAX)
+    );
+    INSERT INTO [Car] ([Make])
+      VALUES ('Volvo'),
+             ('Toyota'),
+             ('Tesla')
+  DUMP_FILE: dump.sql
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    services:
+      # https://hub.docker.com/_/microsoft-mssql-server
+      # https://docs.github.com/en/actions/using-containerized-services/creating-postgresql-service-containers#configuring-the-runner-job-for-jobs-directly-on-the-runner-machine
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: y
+          MSSQL_SA_PASSWORD: ${{ env.DATABASE_PASSWORD }}
+          MSSQL_PID: Express
+          MSSQL_COLLATION: Latin1_General_100_CI_AI_SC_UTF8
+        ports:
+          - 1433:1433
+    steps:
+      - name: Create schema
+        run: |
+          sleep 5
+
+          sqlcmd \
+            -S "${DATABASE_HOST}" \
+            -U "${DATABASE_USER}" \
+            -P "${DATABASE_PASSWORD}" \
+            -Q "CREATE DATABASE ${DATABASE_NAME}"
+
+          echo "Database created."
+
+          sqlcmd \
+            -S "${DATABASE_HOST}" \
+            -U "${DATABASE_USER}" \
+            -P "${DATABASE_PASSWORD}" \
+            -d "${DATABASE_NAME}" \
+            -Q "${DUMP_SCHEMA}"
+
+          echo "Schema created."
+      - name: Install .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Dump database
+        run: |
+          dotnet run --project src/Kent.DbCli.csproj -- \
+            dump-database \
+            -h "${DATABASE_HOST}" \
+            -d "${DATABASE_NAME}" \
+            -u "${DATABASE_USER}" \
+            -p "${DATABASE_PASSWORD}" \
+            -o "${DUMP_FILE}"
+
+          if ! [ -e "${DUMP_FILE}" ]; then
+            exit 1
+          fi
+      - name: Upload the dump
+        uses: actions/upload-artifact@v4
+        with:
+          path: ${{ env.DUMP_FILE }}
