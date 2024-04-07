@@ -17,7 +17,7 @@ env:
   DUMP_SCHEMA: |
     CREATE TABLE [Car] (
       [Id] INTEGER PRIMARY KEY NOT NULL IDENTITY(1, 1),
-      [Make] NVARCHAR(MAX)
+      [Make] NVARCHAR(MAX) NOT NULL
     );
     INSERT INTO [Car] ([Make])
       VALUES ('Volvo'),

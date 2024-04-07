@@ -1,5 +1,5 @@
 # Kent SQL Server database cli
-Kent.DbCli is a native .NET command line utility to dump an SQL Server database to a file. It
+Kent.DbCli is a native .NET command line utility for dumping an SQL Server database to a file. It
 mimics the "Generate Scripts" tool in SSMS but has some sensible defaults, like including indexes.
 
 Communication with SQL Server is done using [sqltoolsservice](https://github.com/microsoft/sqltoolsservice),
