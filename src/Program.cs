@@ -16,12 +16,29 @@ using CommandFn = Func<string[], Task<int>>;
 
 class Program
 {
-    static readonly string[] ARGUMENT_HOST = new[] { "-h", "--host" };
-    static readonly string[] ARGUMENT_DATABASE = new[] { "-d", "--database" };
-    static readonly string[] ARGUMENT_USER = new[] { "-u", "--user" };
-    static readonly string[] ARGUMENT_PASSWORD = new[] { "-p", "--password" };
-    static readonly string[] ARGUMENT_CONNECTION_STRING = new[] { "-c", "--connection-string" };
-    static readonly string[] ARGUMENT_OUT_FILE = new[] { "-o", "--out-file" };
+    static readonly NamedArgument ARGUMENT_HOST = new("-h", "--host")
+    {
+        Description = "Database host."
+    };
+    static readonly NamedArgument ARGUMENT_DATABASE = new("-d", "--database")
+    {
+        Description = "Database name.",
+    };
+    static readonly NamedArgument ARGUMENT_USER = new("-u", "--user");
+    static readonly NamedArgument ARGUMENT_PASSWORD = new("-p", "--password");
+    static readonly NamedArgument ARGUMENT_CONNECTION_STRING = new("-c", "--connection-string")
+    {
+        Description = "Raw connection string. Overrides the other connection arguments."
+    };
+    static readonly NamedArgument ARGUMENT_OUT_FILE = new("-o", "--out-file");
+    static readonly NamedArgument[] ARGUMENTS = new[] {
+        ARGUMENT_HOST,
+        ARGUMENT_DATABASE,
+        ARGUMENT_USER,
+        ARGUMENT_PASSWORD,
+        ARGUMENT_CONNECTION_STRING,
+        ARGUMENT_OUT_FILE,
+    };
 
     static readonly Dictionary<string, CommandFn> _commands = new()
     {
@@ -48,16 +65,14 @@ class Program
         Environment.Exit(code);
     }
 
-    static string GetNamedArgument(string[] args, params string[] names)
+    static string GetNamedArgument(string[] args, NamedArgument named)
     {
-        Debug.Assert(names.Length != 0);
-
         for (var i = 0; i < args.Length; ++i)
         {
-            var arg = args[i].Trim();
-            if (names.Contains(arg))
+            var maybeName = args[i].Trim();
+            if (named.Names.Contains(maybeName))
             {
-                return (i < (args.Length - 1)) ? args[i + 1] : string.Empty;
+                return (i < (args.Length - 1)) ? args[i + 1] : named.Default;
             }
         }
 
@@ -66,11 +81,6 @@ class Program
 
     static void Usage()
     {
-        static void ArgumentUsage(string[] names, string description)
-        {
-            Console.WriteLine("  {0,-24} {1}", string.Join(", ", names), description);
-        }
-
         Console.WriteLine("Usage:");
         foreach (var (name, _) in _commands)
         {
@@ -78,12 +88,12 @@ class Program
         }
         Console.WriteLine(string.Empty);
         Console.WriteLine("Arguments:");
-        ArgumentUsage(ARGUMENT_HOST, "database host");
-        ArgumentUsage(ARGUMENT_DATABASE, "database name");
-        ArgumentUsage(ARGUMENT_USER, "user");
-        ArgumentUsage(ARGUMENT_PASSWORD, "password");
-        ArgumentUsage(ARGUMENT_CONNECTION_STRING, "raw connection string");
-        ArgumentUsage(ARGUMENT_OUT_FILE, "out file");
+
+        foreach (var arg in ARGUMENTS)
+        {
+            Console.WriteLine("  {0,-32} {1}", string.Join(", ", arg.Names), arg.Description);
+        }
+
         Console.WriteLine(string.Empty);
         Console.WriteLine("Examples:");
         Console.WriteLine("  dump-schema   -h localhost -d dbname -u sa -p password");
