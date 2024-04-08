@@ -1,7 +1,35 @@
 # Kent SQL Server database cli
-Kent.DbCli is a native .NET command line utility for backing up an SQL Server database.
+Kent.DbCli is a cross-platform command line utility for backing up an SQL Server database.
+It outputs an SQL-file similar to `pg_dump` or `mysqldump`.
 
-Overthe years I have gotten increasingly frustrated with the tooling-situation around
+## Usage
+```shell
+Usage:
+  dump-schema
+  dump-database
+
+Arguments:
+  -h, --host                       Database host.
+  -d, --database                   Database name.
+  -u, --user
+  -p, --password
+  -c, --connection-string          Raw connection string. Overrides the other connection arguments.
+  -o, --out-file
+```
+
+To dump the schema only:
+```shell
+./Kent.DbCli dump-schema -h localhost -d dbname -u sa -p password
+```
+
+To dump the schema and data:
+```shell
+./Kent.DbCli dump-database -h localhost -d dbname -u sa -p password
+```
+
+## Background
+
+Over the years I have gotten increasingly frustrated with the tooling-situation around
 SQL Server. To make a complete backup you basically have three options:
 
 1) Issue a manual `BACKUP DATABASE` query.
@@ -23,30 +51,3 @@ The following objects are included in the dump:
 - indexes
 - foreign keys
 - table data, see `dump-database`
-
-## Usage
-```shell
-Usage:
-  dump-schema
-  dump-database
-
-Arguments:
-  -h, --host                       Database host.
-  -d, --database                   Database name.
-  -u, --user
-  -p, --password
-  -c, --connection-string          Raw connection string. Overrides the other connection arguments.
-  -o, --out-file
-```
-
-To dump the schema only:
-```shell
-dotnet run --project src/Kent.DbCli.csproj -- \
-  dump-schema -h localhost -d dbname -u sa -p password
-```
-
-To dump the schema and data:
-```shell
-dotnet run --project src/Kent.DbCli.csproj -- \
-  dump-database -h localhost -d dbname -u sa -p password
-```
