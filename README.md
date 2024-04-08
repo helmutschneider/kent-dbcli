@@ -15,6 +15,8 @@ Arguments:
   -p, --password
   -c, --connection-string          Raw connection string. Overrides the other connection arguments.
   -o, --out-file
+  --verbose                        Print progress messages from SQL Tools Service.
+  --stdout                         Write the backup to standard out instead of a file.
 ```
 
 To dump the schema only:
