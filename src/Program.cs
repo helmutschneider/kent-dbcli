@@ -16,28 +16,40 @@ using CommandFn = Func<string[], Task<int>>;
 
 class Program
 {
-    static readonly NamedArgument ARGUMENT_HOST = new("-h", "--host")
+    static readonly Argument<string> ARGUMENT_HOST = new("-h", "--host")
     {
         Description = "Database host."
     };
-    static readonly NamedArgument ARGUMENT_DATABASE = new("-d", "--database")
+    static readonly Argument<string> ARGUMENT_DATABASE = new("-d", "--database")
     {
         Description = "Database name.",
     };
-    static readonly NamedArgument ARGUMENT_USER = new("-u", "--user");
-    static readonly NamedArgument ARGUMENT_PASSWORD = new("-p", "--password");
-    static readonly NamedArgument ARGUMENT_CONNECTION_STRING = new("-c", "--connection-string")
+    static readonly Argument<string> ARGUMENT_USER = new("-u", "--user");
+    static readonly Argument<string> ARGUMENT_PASSWORD = new("-p", "--password");
+    static readonly Argument<string> ARGUMENT_CONNECTION_STRING = new("-c", "--connection-string")
     {
         Description = "Raw connection string. Overrides the other connection arguments."
     };
-    static readonly NamedArgument ARGUMENT_OUT_FILE = new("-o", "--out-file");
-    static readonly NamedArgument[] ARGUMENTS = new[] {
+    static readonly Argument<string> ARGUMENT_OUT_FILE = new("-o", "--out-file");
+    static readonly Argument<bool> ARGUMENT_VERBOSE = new("--verbose")
+    {
+        Description = "Print progress messages from SQL Tools Service.",
+        Default = false,
+    };
+    static readonly Argument<bool> ARGUMENT_STDOUT = new("--stdout")
+    {
+        Description = "Write the backup to standard out instead of a file.",
+        Default = false,
+    };
+    static readonly IArgument[] ARGUMENTS = new IArgument[] {
         ARGUMENT_HOST,
         ARGUMENT_DATABASE,
         ARGUMENT_USER,
         ARGUMENT_PASSWORD,
         ARGUMENT_CONNECTION_STRING,
         ARGUMENT_OUT_FILE,
+        ARGUMENT_VERBOSE,
+        ARGUMENT_STDOUT,
     };
 
     static readonly Dictionary<string, CommandFn> _commands = new()
@@ -65,18 +77,44 @@ class Program
         Environment.Exit(code);
     }
 
-    static string GetNamedArgument(string[] args, NamedArgument named)
+    static T? GetNamedArgument<T>(string[] args, Argument<T> named)
     {
         for (var i = 0; i < args.Length; ++i)
         {
             var maybeName = args[i].Trim();
-            if (named.Names.Contains(maybeName))
+
+            if (!named.Names.Contains(maybeName))
             {
-                return (i < (args.Length - 1)) ? args[i + 1] : named.Default;
+                continue;
+            }
+
+            var next = (i < (args.Length - 1)) ? args[i + 1] : string.Empty;
+            var nextLooksLikeArgument = next.StartsWith("-");
+
+            switch (named)
+            {
+                case Argument<bool>: {
+                    if (nextLooksLikeArgument || string.IsNullOrEmpty(next))
+                    {
+                        return (T)(object)true;
+                    }
+                    if (bool.TryParse(next, out var parsed))
+                    {
+                        return (T)(object)parsed;
+                    }
+                    break;
+                }
+                case Argument<string>: {
+                    if (!nextLooksLikeArgument && !string.IsNullOrEmpty(next))
+                    {
+                        return (T)(object)next;
+                    }
+                    break;
+                }
             }
         }
 
-        return string.Empty;
+        return named.Default;
     }
 
     static void Usage()
@@ -152,6 +190,9 @@ class Program
             connStr = builder.ConnectionString;
         }
 
+        var toStdout = GetNamedArgument(args, ARGUMENT_STDOUT);
+        var verbose = GetNamedArgument(args, ARGUMENT_VERBOSE);
+
         var opts = new ScriptingParams
         {
             ConnectionString = connStr,
@@ -163,7 +204,7 @@ class Program
             },
             FilePath = outfile,
             Operation = ScriptingOperationType.Create,
-            ScriptDestination = "ToSingleFile",
+            ScriptDestination = toStdout ? "ToEditor" : "ToSingleFile",
             ScriptOptions = new ScriptOptions
             {
                 ContinueScriptingOnError = false,
@@ -178,7 +219,7 @@ class Program
             },
         };
 
-        var ctx = new ScriptContext();
+        var ctx = new ScriptContext(verbose);
 
         using (var scripting = new ScriptingService())
         {
@@ -192,7 +233,14 @@ class Program
         switch (ctx.Status)
         {
             case ScriptStatus.Success:
-                Console.WriteLine($"[OK] Script written to '{opts.FilePath}'");
+                if (toStdout)
+                {
+                    Console.WriteLine(ctx.Output);
+                }
+                else
+                {
+                    Console.WriteLine($"[OK] Script written to '{opts.FilePath}'");
+                }
                 return 0;
             case ScriptStatus.Error:
                 return 1;

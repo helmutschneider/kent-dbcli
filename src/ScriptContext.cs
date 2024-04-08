@@ -12,9 +12,13 @@ namespace Kent.DbCli;
 public class ScriptContext : RequestContext<ScriptingResult>
 {
     public ScriptStatus Status { get; private set; } = ScriptStatus.InProgress;
+    public string Output { get; private set; } = string.Empty;
 
-    public ScriptContext() : base(_message, new MessageWriter(Stream.Null, new JsonRpcMessageSerializer()))
+    readonly bool _verbose;
+
+    public ScriptContext(bool verbose) : base(_message, new MessageWriter(Stream.Null, new JsonRpcMessageSerializer()))
     {
+        _verbose = verbose;
     }
 
     // if we use 'Message.Unknown()' the JSON serializer throws an error due to the null 'Id'. 
@@ -30,9 +34,9 @@ public class ScriptContext : RequestContext<ScriptingResult>
         switch (eventParams)
         {
             case ScriptingProgressNotificationParams progress:
-                if (progress.Status == "Completed")
+                if (_verbose)
                 {
-                    WriteMessage("[{0}/{1}] {2}: {3}", progress.CompletedCount, progress.TotalCount, progress.ScriptingObject.Type, progress.ScriptingObject);
+                    WriteMessage("[{0}/{1}] {2}, {3}, {4}", progress.CompletedCount, progress.TotalCount, progress.Status, progress.ScriptingObject.Type, progress.ScriptingObject);
                 }
                 break;
             case ScriptingCompleteParams complete:
@@ -59,6 +63,9 @@ public class ScriptContext : RequestContext<ScriptingResult>
 
     public override Task SendResult(ScriptingResult resultDetails)
     {
+        /// <see cref="Program.ARGUMENT_STDOUT"/>
+        Output = resultDetails.Script ?? string.Empty;
+
         return base.SendResult(resultDetails);
     }
 

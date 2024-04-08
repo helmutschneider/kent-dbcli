@@ -2,13 +2,13 @@ using System;
 
 namespace Kent.DbCli;
 
-public class NamedArgument
+public class Argument<T> : IArgument
 {
     public string[] Names { get; }
     public string Description { get; init; } = string.Empty;
-    public string Default { get; init; } = string.Empty;
+    public T? Default { get; init; } = default(T);
 
-    public NamedArgument(string name, params string[] names)
+    public Argument(string name, params string[] names)
     {
         this.Names = new string[1 + names.Length];
         this.Names[0] = name;
