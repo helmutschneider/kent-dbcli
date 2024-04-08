@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -148,7 +148,8 @@ class Program
             ExcludeTypes = new List<string>()
             {
                 // make sure we don't include any 'CREATE DATABASE' queries in the dump.
-                "database",
+                "Database",
+                "User,"
             },
             FilePath = outfile,
             Operation = ScriptingOperationType.Create,
