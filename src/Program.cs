@@ -199,6 +199,7 @@ class Program
             ExcludeTypes = new List<string>()
             {
                 // make sure we don't include any 'CREATE DATABASE' queries in the dump.
+                // https://learn.microsoft.com/en-us/dotnet/api/microsoft.sqlserver.management.smo.databaseobjecttypes?view=sql-smo-160
                 "Database",
                 "User,"
             },
