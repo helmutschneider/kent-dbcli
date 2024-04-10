@@ -4,7 +4,8 @@ namespace Kent.DbCli;
 
 public enum ScriptStatus
 {
-    InProgress = 0,
+    Unknown = 0,
+    InProgress,
     Error,
     Success,
 }

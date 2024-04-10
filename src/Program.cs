@@ -36,10 +36,9 @@ class Program
         Description = "Print progress messages from SQL Tools Service.",
         Default = false,
     };
-    static readonly Argument<bool> ARGUMENT_STDOUT = new("--stdout")
+    static readonly Argument<string> ARGUMENT_EXCLUDE_TABLE = new("--exclude-table")
     {
-        Description = "Write the backup to standard out instead of a file.",
-        Default = false,
+        Description = "Exclude data from a table. Only applies to 'dump-database'. May be specified multiple times.",
     };
     static readonly IArgument[] ARGUMENTS = new IArgument[] {
         ARGUMENT_HOST,
@@ -49,7 +48,7 @@ class Program
         ARGUMENT_CONNECTION_STRING,
         ARGUMENT_OUT_FILE,
         ARGUMENT_VERBOSE,
-        ARGUMENT_STDOUT,
+        ARGUMENT_EXCLUDE_TABLE,
     };
 
     static readonly Dictionary<string, CommandFn> _commands = new()
@@ -57,6 +56,12 @@ class Program
         {"dump-schema", DumpSchemaAsync},
         {"dump-database", DumpDatabaseAsync},
     };
+
+    const string SCRIPT_DESTINATION_FILE = "ToSingleFile";
+    const string SCRIPT_DESTINATION_EDITOR = "ToEditor";
+    const string SCRIPT_SCHEMA = "SchemaOnly";
+    const string SCRIPT_SCHEMA_AND_DATA = "SchemaAndData";
+    const string SCRIPT_DATA = "DataOnly";
 
     static async Task Main(string[] args)
     {
@@ -79,6 +84,18 @@ class Program
 
     static T? GetNamedArgument<T>(string[] args, Argument<T> named)
     {
+        var parsed = GetNamedArrayArgument(args, named);
+        if (parsed.Count != 0)
+        {
+            return parsed[0];
+        }
+        return named.Default;
+    }
+
+    static IReadOnlyList<T> GetNamedArrayArgument<T>(string[] args, Argument<T> named)
+    {
+        var values = new List<T>();
+
         for (var i = 0; i < args.Length; ++i)
         {
             var maybeName = args[i].Trim();
@@ -89,32 +106,15 @@ class Program
             }
 
             var next = (i < (args.Length - 1)) ? args[i + 1] : string.Empty;
-            var nextLooksLikeArgument = next.StartsWith("-");
+            var parsed = named.Parse(next);
 
-            switch (named)
+            if (parsed != null)
             {
-                case Argument<bool>: {
-                    if (nextLooksLikeArgument || string.IsNullOrEmpty(next))
-                    {
-                        return (T)(object)true;
-                    }
-                    if (bool.TryParse(next, out var parsed))
-                    {
-                        return (T)(object)parsed;
-                    }
-                    break;
-                }
-                case Argument<string>: {
-                    if (!nextLooksLikeArgument && !string.IsNullOrEmpty(next))
-                    {
-                        return (T)(object)next;
-                    }
-                    break;
-                }
+                values.Add(parsed);
             }
         }
 
-        return named.Default;
+        return values;
     }
 
     static void Usage()
@@ -138,17 +138,93 @@ class Program
         Console.WriteLine("  dump-database -h localhost -d dbname -u sa -p password");
     }
 
-    static Task<int> DumpSchemaAsync(string[] args)
+    static async Task<int> DumpSchemaAsync(string[] args)
     {
-        return RunScriptRequestAsync(args, "SchemaOnly");
+        var opts = CreateScriptingParams(args);
+        if (opts == null)
+        {
+            return 1;
+        }
+
+        opts.ScriptOptions.TypeOfDataToScript = SCRIPT_SCHEMA;
+
+        var verbose = GetNamedArgument(args, ARGUMENT_VERBOSE);
+        var status = await RunScriptRequestAsync(verbose, opts);
+
+        if (status != ScriptStatus.Success)
+        {
+            return 1;
+        }
+
+        Console.WriteLine($"[OK] Script written to '{opts.FilePath}'");
+        return 0;
     }
 
-    static Task<int> DumpDatabaseAsync(string[] args)
+    static async Task<int> DumpDatabaseAsync(string[] args)
     {
-        return RunScriptRequestAsync(args, "SchemaAndData");
+        // dump the schema first. then dump the data separately so we can control
+        // which tables we want to exclude.
+
+        var schemaOpts = CreateScriptingParams(args);
+        if (schemaOpts == null)
+        {
+            Usage();
+            return 1;
+        }
+
+        schemaOpts.ScriptOptions.TypeOfDataToScript = SCRIPT_SCHEMA;
+
+        var verbose = GetNamedArgument(args, ARGUMENT_VERBOSE);
+        var status = await RunScriptRequestAsync(verbose, schemaOpts);
+
+        if (status != ScriptStatus.Success)
+        {
+            return 1;
+        }
+
+        var dataOpts = CreateScriptingParams(args);
+        if (dataOpts == null)
+        {
+            Usage();
+            return 1;
+        }
+        dataOpts.ScriptOptions.TypeOfDataToScript = SCRIPT_DATA;
+        dataOpts.FilePath += ".temp";
+
+        var excludeTables = GetNamedArrayArgument(args, ARGUMENT_EXCLUDE_TABLE);
+
+        foreach (var table in excludeTables)
+        {
+            dataOpts.ExcludeObjectCriteria.Add(new ScriptingObject()
+            {
+                Type = "Table",
+                Name = table,
+            });
+        }
+
+        status = await RunScriptRequestAsync(verbose, dataOpts);
+
+        if (status != ScriptStatus.Success)
+        {
+            return 1;
+        }
+
+        using (var input = File.OpenRead(dataOpts.FilePath))
+        {
+            using (var output = File.OpenWrite(schemaOpts.FilePath))
+            {
+                output.Seek(0, SeekOrigin.End);
+                input.CopyTo(output);
+            }
+        }
+
+        File.Delete(dataOpts.FilePath);
+        Console.WriteLine($"[OK] Script written to '{schemaOpts.FilePath}'");
+
+        return 0;
     }
 
-    static async Task<int> RunScriptRequestAsync(string[] args, string typeOfData)
+    static ScriptingParams? CreateScriptingParams(string[] args)
     {
         var outfile = GetNamedArgument(args, ARGUMENT_OUT_FILE);
 
@@ -183,15 +259,11 @@ class Program
 
             if (string.IsNullOrEmpty(builder.DataSource))
             {
-                Usage();
-                return 1;
+                return null;
             }
 
             connStr = builder.ConnectionString;
         }
-
-        var toStdout = GetNamedArgument(args, ARGUMENT_STDOUT);
-        var verbose = GetNamedArgument(args, ARGUMENT_VERBOSE);
 
         var opts = new ScriptingParams
         {
@@ -205,7 +277,7 @@ class Program
             },
             FilePath = outfile,
             Operation = ScriptingOperationType.Create,
-            ScriptDestination = toStdout ? "ToEditor" : "ToSingleFile",
+            ScriptDestination = SCRIPT_DESTINATION_FILE,
             ScriptOptions = new ScriptOptions
             {
                 ContinueScriptingOnError = false,
@@ -215,11 +287,18 @@ class Program
                 ScriptIndexes = true,
                 ScriptUseDatabase = false,
                 TargetDatabaseEngineEdition = "SqlServerExpressEdition",
-                TypeOfDataToScript = typeOfData,
                 UniqueKeys = true,
+
+                // 'TypeOfDataToScript' is set outside.
             },
+            ExcludeObjectCriteria = new List<ScriptingObject>(),
         };
 
+        return opts;
+    }
+
+    static async Task<ScriptStatus> RunScriptRequestAsync(bool verbose, ScriptingParams opts)
+    {
         var ctx = new ScriptContext(verbose);
 
         using (var scripting = new ScriptingService())
@@ -231,22 +310,6 @@ class Program
             }
         }
 
-        switch (ctx.Status)
-        {
-            case ScriptStatus.Success:
-                if (toStdout)
-                {
-                    Console.WriteLine(ctx.Output);
-                }
-                else
-                {
-                    Console.WriteLine($"[OK] Script written to '{opts.FilePath}'");
-                }
-                return 0;
-            case ScriptStatus.Error:
-                return 1;
-            default:
-                throw new InvalidOperationException();
-        }
+        return ctx.Status;
     }
 }
