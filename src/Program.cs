@@ -30,7 +30,10 @@ public class Program
     {
         Description = "Raw connection string. Overrides the other connection arguments."
     };
-    static readonly Argument<string> ARGUMENT_OUT_FILE = new("-o", "--output");
+    static readonly Argument<string> ARGUMENT_OUT_FILE = new("-o", "--output")
+    {
+        Description = "Path to write the output to."
+    };
     static readonly Argument<bool> ARGUMENT_VERBOSE = new("--verbose")
     {
         Description = "Print progress messages from SQL Tools Service.",
