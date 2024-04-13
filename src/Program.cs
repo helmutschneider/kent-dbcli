@@ -14,7 +14,7 @@ namespace Kent.DbCli;
 
 using CommandFn = Func<string[], Task<int>>;
 
-class Program
+public class Program
 {
     static readonly Argument<string> ARGUMENT_HOST = new("-h", "--host")
     {
@@ -65,21 +65,25 @@ class Program
 
     static async Task Main(string[] args)
     {
+        var code = await InvokeAsync(args);
+        Environment.Exit(code);
+    }
+
+    public static async Task<int> InvokeAsync(string[] args)
+    {
         if (args.Length == 0)
         {
             Usage();
-            Environment.Exit(1);
-            return;
+            return 1;
         }
         var name = args[0];
         if (!_commands.TryGetValue(name, out var fn))
         {
             Usage();
-            Environment.Exit(1);
-            return;
+            return 1;
         }
         var code = await fn(args.Skip(1).ToArray());
-        Environment.Exit(code);
+        return code;
     }
 
     static T? GetNamedArgument<T>(string[] args, Argument<T> named)

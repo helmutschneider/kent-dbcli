@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="..\Build.props" />
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
@@ -10,18 +12,6 @@
   </PropertyGroup>
 
   <!-- https://github.com/microsoft/sqltoolsservice/releases/tag/4.5.0.15 -->
-
-  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'osx-arm64' Or ($([MSBuild]::IsOsPlatform('OSX')) And '$(RuntimeIdentifier)' == '')">
-    <ServiceLayerPath>..\servicelayer-osx-arm64</ServiceLayerPath>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' Or ($([MSBuild]::IsOsPlatform('Windows')) And '$(RuntimeIdentifier)' == '')">
-    <ServiceLayerPath>..\servicelayer-win-x64</ServiceLayerPath>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64' Or ($([MSBuild]::IsOsPlatform('Linux')) And '$(RuntimeIdentifier)' == '')">
-    <ServiceLayerPath>..\servicelayer-rhel-x64</ServiceLayerPath>
-  </PropertyGroup>
 
   <ItemGroup>
     <Reference Include="MicrosoftSqlToolsServiceLayer.dll">

@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\Build.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <RootNamespace>Kent.DbCli.Tests</RootNamespace>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <WarningsAsErrors>Nullable</WarningsAsErrors>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+    <PackageReference Include="xunit" Version="2.7.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.8">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\Kent.DbCli.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Configuration.ConfigurationManager.dll">
+      <HintPath>$(ServiceLayerPath)\System.Configuration.ConfigurationManager.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Data.SqlClient.dll">
+      <HintPath>$(ServiceLayerPath)\Microsoft.Data.SqlClient.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Security.Permissions.dll">
+      <HintPath>$(ServiceLayerPath)\System.Security.Permissions.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' Or ($([MSBuild]::IsOsPlatform('Windows')) And '$(RuntimeIdentifier)' == '')">
+    <None Include="$(ServiceLayerPath)\Microsoft.Data.SqlClient.SNI.dll" CopyToOutputDirectory="Always" />
+  </ItemGroup>
+
+</Project>
+ 

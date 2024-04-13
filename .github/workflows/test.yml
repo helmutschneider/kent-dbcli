@@ -11,18 +11,8 @@ concurrency:
 env:
   DOTNET_VERSION: 6.0.x
   DATABASE_HOST: 127.0.0.1
-  DATABASE_NAME: kent
   DATABASE_USER: sa
   DATABASE_PASSWORD: 8rLCbRdR
-  DUMP_SCHEMA: |
-    CREATE TABLE [Car] (
-      [Id] INTEGER PRIMARY KEY NOT NULL IDENTITY(1, 1),
-      [Make] NVARCHAR(MAX) NOT NULL
-    );
-    INSERT INTO [Car] ([Make])
-      VALUES ('Volvo'),
-             ('Toyota'),
-             ('Tesla')
 jobs:
   test:
     runs-on: ubuntu-22.04
@@ -44,36 +34,10 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-      - name: Create database schema
+      - name: Run tests
         run: |
           sleep 5
-
-          sqlcmd \
-            -S "${DATABASE_HOST}" \
-            -U "${DATABASE_USER}" \
-            -P "${DATABASE_PASSWORD}" \
-            -Q "CREATE DATABASE ${DATABASE_NAME}"
-
-          echo "Database created."
-
-          sqlcmd \
-            -S "${DATABASE_HOST}" \
-            -U "${DATABASE_USER}" \
-            -P "${DATABASE_PASSWORD}" \
-            -d "${DATABASE_NAME}" \
-            -Q "${DUMP_SCHEMA}"
-
-          echo "Schema created."
-      - name: Create test dumps
-        run: |
-          for cmd in "dump-schema" "dump-database"; do
-            dotnet run --project src/Kent.DbCli.csproj -- \
-              "${cmd}" \
-              -h "${DATABASE_HOST}" \
-              -d "${DATABASE_NAME}" \
-              -u "${DATABASE_USER}" \
-              -p "${DATABASE_PASSWORD}"
-          done
+          dotnet test
       - name: Upload the dumps
         uses: actions/upload-artifact@v4
         with:
