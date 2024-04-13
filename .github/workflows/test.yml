@@ -36,9 +36,4 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - name: Run tests
         run: |
-          sleep 5
           dotnet test
-      - name: Upload the dumps
-        uses: actions/upload-artifact@v4
-        with:
-          path: '${{ github.workspace }}/*.sql'

@@ -32,7 +32,7 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
     public async Task DumpSchema()
     {
         var sln = FindSolutionPath();
-        var path = Path.Combine(sln!, "schema.sql");
+        var path = Path.Combine(sln!, "dump.sql");
         
         var ok = await Program.InvokeAsync(new [] {
             "dump-schema",
@@ -51,7 +51,7 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
     public async Task DumpDatabase()
     {
         var sln = FindSolutionPath();
-        var path = Path.Combine(sln!, "database.sql");
+        var path = Path.Combine(sln!, "dump.sql");
         
         var ok = await Program.InvokeAsync(new [] {
             "dump-database",
@@ -66,6 +66,28 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
         var numInserts = Regex.Matches(dump, @"^INSERT \[dbo\]\.", RegexOptions.Multiline);
 
         Assert.Equal(3, numInserts.Count);
+    }
+
+    [Fact]
+    public async Task DumpDatabaseAndExcludeTable()
+    {
+        var sln = FindSolutionPath();
+        var path = Path.Combine(sln!, "dump.sql");
+        
+        var ok = await Program.InvokeAsync(new [] {
+            "dump-database",
+            "--connection-string", _db.ConnectionString,
+            "--out-file", path,
+            "--exclude-table", "Car"
+        });
+
+        Assert.Equal(0, ok);
+        Assert.True(File.Exists(path));
+        
+        var dump = File.ReadAllText(path);
+        var exists = Regex.IsMatch(dump, @"^INSERT \[dbo\]\.", RegexOptions.Multiline);
+        
+        Assert.False(exists);
     }
 
     public void Dispose()
