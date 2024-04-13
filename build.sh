@@ -15,14 +15,19 @@ if [ -z "${VERSION}" ]; then
   exit 1
 fi
 
+rm -rf build/
 mkdir -p build/
 
+BUILD_PROJECT="src/Kent.DbCli.csproj"
+
 for RUNTIME in "win-x64" "linux-x64" "osx-arm64"; do
+  find . -type d \( -name 'bin' -or -name 'obj' \) | xargs rm -rf
+
   BUILD_NAME="kent-dbcli-${VERSION}-${RUNTIME}"
   BUILD_DIR="build/${BUILD_NAME}"
 
-  dotnet clean
   dotnet publish \
+    "${BUILD_PROJECT}" \
     --configuration Release \
     --no-cache \
     --self-contained \
