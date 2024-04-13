@@ -37,7 +37,7 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
         var ok = await Program.InvokeAsync(new [] {
             "dump-schema",
             "--connection-string", _db.ConnectionString,
-            "--out-file", path,
+            "--output", path,
         });
 
         Assert.Equal(0, ok);
@@ -56,7 +56,7 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
         var ok = await Program.InvokeAsync(new [] {
             "dump-database",
             "--connection-string", _db.ConnectionString,
-            "--out-file", path,
+            "--output", path,
         });
 
         Assert.Equal(0, ok);
@@ -77,7 +77,7 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
         var ok = await Program.InvokeAsync(new [] {
             "dump-database",
             "--connection-string", _db.ConnectionString,
-            "--out-file", path,
+            "--output", path,
             "--exclude-table", "Car"
         });
 

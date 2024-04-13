@@ -14,9 +14,9 @@ Arguments:
   -u, --user
   -p, --password
   -c, --connection-string          Raw connection string. Overrides the other connection arguments.
-  -o, --out-file
+  -o, --output
   --verbose                        Print progress messages from SQL Tools Service.
-  --stdout                         Write the backup to standard out instead of a file.
+  --exclude-table                  Exclude data from a table. Only applies to 'dump-database'. May be specified multiple times.
 ```
 
 To dump the schema only:
@@ -27,6 +27,11 @@ To dump the schema only:
 To dump the schema and data:
 ```shell
 ./Kent.DbCli dump-database -h localhost -d dbname -u sa -p password
+```
+
+To dump the schema and data, excluding some table:
+```shell
+./Kent.DbCli dump-database -h localhost -d dbname -u sa -p password --exclude-table TableName
 ```
 
 ## Background
