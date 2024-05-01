@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Xunit;
@@ -88,6 +89,35 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
         var exists = Regex.IsMatch(dump, @"^INSERT \[dbo\]\.", RegexOptions.Multiline);
         
         Assert.False(exists);
+    }
+
+    [Fact]
+    public async Task DumpDatabaseOnlyIncludesOneByteOrderMark()
+    {
+        var sln = FindSolutionPath();
+        var path = Path.Combine(sln!, "dump.sql");
+        
+        var ok = await Program.InvokeAsync(new [] {
+            "dump-database",
+            "--connection-string", _db.ConnectionString,
+            "--output", path,
+        });
+
+        Assert.Equal(0, ok);
+        Assert.True(File.Exists(path));
+
+        var bytes = File.ReadAllBytes(path);
+        var foundByteOrderMarks = 0;
+
+        for (var i = 0; i < (bytes.Length - 1); ++i)
+        {
+            if (bytes[i] == '\xFF' && bytes[i + 1] == '\xFE')
+            {
+                foundByteOrderMarks += 1;
+            }
+        }
+
+        Assert.Equal(1, foundByteOrderMarks);
     }
 
     public void Dispose()

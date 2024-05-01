@@ -221,6 +221,17 @@ public class Program
             using (var output = File.OpenWrite(schemaOpts.FilePath))
             {
                 output.Seek(0, SeekOrigin.End);
+
+                // both files are written as UTF16LE and both naturally contain
+                // byte order marks. we don't want the BOM from the second file,
+                // as it will be appended to the first.
+                var bom = new byte[2];
+                var read = input.Read(bom);
+                
+                Debug.Assert(read == 2);
+                Debug.Assert(bom[0] == '\xFF');
+                Debug.Assert(bom[1] == '\xFE');
+
                 input.CopyTo(output);
             }
         }
