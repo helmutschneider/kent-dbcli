@@ -27,4 +27,7 @@ jobs:
           ./build.sh "${BUILD_VERSION}"
       - uses: actions/upload-artifact@v4
         with:
-          path: '${{ github.workspace }}/build/*.tar.gz'
+          if-no-files-found: error
+          path: |
+            ${{ github.workspace }}/build/*.tar.gz
+            ${{ github.workspace }}/build/*.zip

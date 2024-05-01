@@ -36,6 +36,12 @@ for RUNTIME in "win-x64" "linux-x64" "osx-arm64"; do
     --output "${BUILD_DIR}"
 
   cd "${BUILD_DIR}"
-  tar -czf "../${BUILD_NAME}.tar.gz" *
+
+  if [ $RUNTIME = "win-x64" ]; then
+    zip "../${BUILD_NAME}.zip" *
+  else
+    tar -czf "../${BUILD_NAME}.tar.gz" *
+  fi
+
   cd "${SCRIPT_DIR}"
 done
