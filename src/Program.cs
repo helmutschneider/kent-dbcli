@@ -9,25 +9,27 @@ using Microsoft.Data.SqlClient;
 using Microsoft.SqlTools.ServiceLayer.Scripting;
 using Microsoft.SqlTools.ServiceLayer.Scripting.Contracts;
 
-
 namespace Kent.DbCli;
 
 using CommandFn = Func<string[], Task<int>>;
 
 public class Program
 {
-    static readonly Argument<string> ARGUMENT_HOST = new("-h", "--host")
+    // let's keep these argument names vaguely similar to 'sqlcmd'...
+    // https://learn.microsoft.com/en-us/sql/tools/sqlcmd/sqlcmd-utility
+
+    static readonly Argument<string> ARGUMENT_SERVER = new("-S", "--server")
     {
         Description = "Database host.",
         Default = "localhost",
     };
-    static readonly Argument<string> ARGUMENT_DATABASE = new("-d", "--database")
+    static readonly Argument<string> ARGUMENT_DATABASE = new("-d", "--database-name")
     {
         Description = "Database name.",
     };
-    static readonly Argument<string> ARGUMENT_USER = new("-u", "--user");
-    static readonly Argument<string> ARGUMENT_PASSWORD = new("-p", "--password");
-    static readonly Argument<string> ARGUMENT_OUT_FILE = new("-o", "--output")
+    static readonly Argument<string> ARGUMENT_USER = new("-U", "--user-name");
+    static readonly Argument<string> ARGUMENT_PASSWORD = new("-P", "--password");
+    static readonly Argument<string> ARGUMENT_OUT_FILE = new("-o", "--output-file")
     {
         Description = "Path to write the output to.",
     };
@@ -38,20 +40,21 @@ public class Program
     };
     static readonly Argument<string> ARGUMENT_EXCLUDE_TABLE = new("--exclude-table")
     {
-        Description = "Exclude data from a table. Only applies to 'dump-database'. May be specified multiple times.",
+        Description = "Exclude data from a table. May be specified multiple times.",
     };
     static readonly Argument<bool> ARGUMENT_SCHEMA_ONLY = new("--schema-only")
     {
         Description = "Only backup the database schema, eg. no data.",
     };
     static readonly IArgument[] ARGUMENTS = new IArgument[] {
-        ARGUMENT_HOST,
+        ARGUMENT_SERVER,
         ARGUMENT_DATABASE,
         ARGUMENT_USER,
         ARGUMENT_PASSWORD,
         ARGUMENT_OUT_FILE,
         ARGUMENT_VERBOSE,
         ARGUMENT_EXCLUDE_TABLE,
+        ARGUMENT_SCHEMA_ONLY,
     };
 
     static readonly Dictionary<string, CommandFn> _commands = new()
@@ -140,11 +143,20 @@ public class Program
         {
             Console.WriteLine("  {0,-32} {1}", string.Join(", ", arg.Names), arg.Description);
         }
+        Console.WriteLine(@"
+Examples:
+  backup -S localhost -d dbname -U sa -P password
 
-        Console.WriteLine(string.Empty);
-        Console.WriteLine("Examples:");
-        Console.WriteLine("  dump-schema   -h localhost -d dbname -u sa -p password");
-        Console.WriteLine("  dump-database -h localhost -d dbname -u sa -p password");
+The 'backup' command assumes localhost, so this works too:
+  backup -d dbname -U sa -P password
+
+To backup a localdb instance:
+  backup -S '(LocalDb)\\MSSQLLocalDB' -d dbname
+
+Most arguments should behave exactly like their sqlcmd counterparts.
+
+  https://learn.microsoft.com/en-us/sql/tools/sqlcmd/sqlcmd-utility
+        ");
     }
 
     static async Task<int> BackupAsync(string[] args)
@@ -235,7 +247,7 @@ public class Program
         {
             CommandTimeout = 10,
             ConnectTimeout = 10,
-            DataSource = GetNamedArgument(args, ARGUMENT_HOST),
+            DataSource = GetNamedArgument(args, ARGUMENT_SERVER),
             Encrypt = false,
             InitialCatalog = GetNamedArgument(args, ARGUMENT_DATABASE),
             IntegratedSecurity = false,

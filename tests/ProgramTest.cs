@@ -36,8 +36,12 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
         var path = Path.Combine(sln!, "dump.sql");
         
         var ok = await Program.InvokeAsync(new [] {
-            "dump-schema",
-            "--connection-string", _db.ConnectionString,
+            "backup",
+            "-S", _db.ConnectionStringBuilder.DataSource,
+            "-U", _db.ConnectionStringBuilder.UserID,
+            "-P", _db.ConnectionStringBuilder.Password,
+            "-d", _db.ConnectionStringBuilder.InitialCatalog,
+            "--schema-only",
             "--output", path,
         });
 
@@ -55,8 +59,11 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
         var path = Path.Combine(sln!, "dump.sql");
         
         var ok = await Program.InvokeAsync(new [] {
-            "dump-database",
-            "--connection-string", _db.ConnectionString,
+            "backup",
+            "-S", _db.ConnectionStringBuilder.DataSource,
+            "-U", _db.ConnectionStringBuilder.UserID,
+            "-P", _db.ConnectionStringBuilder.Password,
+            "-d", _db.ConnectionStringBuilder.InitialCatalog,
             "--output", path,
         });
 
@@ -76,10 +83,13 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
         var path = Path.Combine(sln!, "dump.sql");
         
         var ok = await Program.InvokeAsync(new [] {
-            "dump-database",
-            "--connection-string", _db.ConnectionString,
+            "backup",
+            "-S", _db.ConnectionStringBuilder.DataSource,
+            "-U", _db.ConnectionStringBuilder.UserID,
+            "-P", _db.ConnectionStringBuilder.Password,
+            "-d", _db.ConnectionStringBuilder.InitialCatalog,
             "--output", path,
-            "--exclude-table", "Car"
+            "--exclude-table", "Car",
         });
 
         Assert.Equal(0, ok);
@@ -98,8 +108,11 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
         var path = Path.Combine(sln!, "dump.sql");
         
         var ok = await Program.InvokeAsync(new [] {
-            "dump-database",
-            "--connection-string", _db.ConnectionString,
+            "backup",
+            "-S", _db.ConnectionStringBuilder.DataSource,
+            "-U", _db.ConnectionStringBuilder.UserID,
+            "-P", _db.ConnectionStringBuilder.Password,
+            "-d", _db.ConnectionStringBuilder.InitialCatalog,
             "--output", path,
         });
 

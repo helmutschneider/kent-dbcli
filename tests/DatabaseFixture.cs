@@ -13,6 +13,7 @@ namespace Kent.DbCli.Tests;
 
 public class DatabaseFixture : IDisposable
 {
+    public readonly SqlConnectionStringBuilder ConnectionStringBuilder;
     public readonly string ConnectionString;
     public readonly string DatabaseName;
     public readonly SqlConnection Connection;
@@ -30,6 +31,7 @@ public class DatabaseFixture : IDisposable
         var dbName = GetRandomDatabaseName();
         var builder = GetConnectionStringBuilder(dbName);
 
+        this.ConnectionStringBuilder = builder;
         this.ConnectionString = builder.ConnectionString;
         this.DatabaseName = builder.InitialCatalog;
 
