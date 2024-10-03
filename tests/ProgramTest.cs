@@ -40,9 +40,9 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
             "-S", _db.ConnectionStringBuilder.DataSource,
             "-U", _db.ConnectionStringBuilder.UserID,
             "-P", _db.ConnectionStringBuilder.Password,
-            "-d", _db.ConnectionStringBuilder.InitialCatalog,
+            "-d", _db.DatabaseName,
             "--schema-only",
-            "--output", path,
+            "--output-file", path,
         });
 
         Assert.Equal(0, ok);
@@ -63,8 +63,8 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
             "-S", _db.ConnectionStringBuilder.DataSource,
             "-U", _db.ConnectionStringBuilder.UserID,
             "-P", _db.ConnectionStringBuilder.Password,
-            "-d", _db.ConnectionStringBuilder.InitialCatalog,
-            "--output", path,
+            "-d", _db.DatabaseName,
+            "--output-file", path,
         });
 
         Assert.Equal(0, ok);
@@ -87,8 +87,8 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
             "-S", _db.ConnectionStringBuilder.DataSource,
             "-U", _db.ConnectionStringBuilder.UserID,
             "-P", _db.ConnectionStringBuilder.Password,
-            "-d", _db.ConnectionStringBuilder.InitialCatalog,
-            "--output", path,
+            "-d", _db.DatabaseName,
+            "--output-file", path,
             "--exclude-table", "Car",
         });
 
@@ -112,8 +112,8 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
             "-S", _db.ConnectionStringBuilder.DataSource,
             "-U", _db.ConnectionStringBuilder.UserID,
             "-P", _db.ConnectionStringBuilder.Password,
-            "-d", _db.ConnectionStringBuilder.InitialCatalog,
-            "--output", path,
+            "-d", _db.DatabaseName,
+            "--output-file", path,
         });
 
         Assert.Equal(0, ok);

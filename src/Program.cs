@@ -27,8 +27,16 @@ public class Program
     {
         Description = "Database name.",
     };
-    static readonly Argument<string> ARGUMENT_USER = new("-U", "--user-name");
-    static readonly Argument<string> ARGUMENT_PASSWORD = new("-P", "--password");
+    static readonly Argument<string> ARGUMENT_USER = new("-U", "--user-name")
+    {
+        Description = "Database username.",
+        Default = string.Empty,
+    };
+    static readonly Argument<string> ARGUMENT_PASSWORD = new("-P", "--password")
+    {
+        Description = "Database password.",
+        Default = string.Empty,
+    };
     static readonly Argument<string> ARGUMENT_OUT_FILE = new("-o", "--output-file")
     {
         Description = "Path to write the output to.",
@@ -243,14 +251,17 @@ Most arguments should behave exactly like their sqlcmd counterparts.
 
     static ScriptingParams? CreateScriptingParams(string[] args)
     {
+        var server = GetNamedArgument(args, ARGUMENT_SERVER);
+        var isLocalDb = !string.IsNullOrEmpty(server)
+            && server.StartsWith("(localdb)", StringComparison.OrdinalIgnoreCase);
         var connStrBuilder = new SqlConnectionStringBuilder
         {
             CommandTimeout = 10,
             ConnectTimeout = 10,
-            DataSource = GetNamedArgument(args, ARGUMENT_SERVER),
+            DataSource = server,
             Encrypt = false,
             InitialCatalog = GetNamedArgument(args, ARGUMENT_DATABASE),
-            IntegratedSecurity = false,
+            IntegratedSecurity = isLocalDb,
             UserID = GetNamedArgument(args, ARGUMENT_USER),
             Password = GetNamedArgument(args, ARGUMENT_PASSWORD),
         };
@@ -259,7 +270,7 @@ Most arguments should behave exactly like their sqlcmd counterparts.
 
         if (string.IsNullOrEmpty(outfile))
         {
-            var dt = DateTimeOffset.Now.ToString("yyyyMMdd-HHmmss");
+            var dt = DateTimeOffset.Now.ToString("yyyyMMddHHmmss");
             outfile = $"{connStrBuilder.InitialCatalog}-{dt}.sql";
         }
 

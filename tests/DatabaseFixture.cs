@@ -14,7 +14,6 @@ namespace Kent.DbCli.Tests;
 public class DatabaseFixture : IDisposable
 {
     public readonly SqlConnectionStringBuilder ConnectionStringBuilder;
-    public readonly string ConnectionString;
     public readonly string DatabaseName;
     public readonly SqlConnection Connection;
 
@@ -29,11 +28,9 @@ public class DatabaseFixture : IDisposable
     public DatabaseFixture()
     {
         var dbName = GetRandomDatabaseName();
-        var builder = GetConnectionStringBuilder(dbName);
 
-        this.ConnectionStringBuilder = builder;
-        this.ConnectionString = builder.ConnectionString;
-        this.DatabaseName = builder.InitialCatalog;
+        this.ConnectionStringBuilder = GetConnectionStringBuilder(dbName);
+        this.DatabaseName = dbName;
 
         using (var conn = GetConnection(string.Empty))
         {
@@ -62,27 +59,21 @@ public class DatabaseFixture : IDisposable
 
     static SqlConnectionStringBuilder GetConnectionStringBuilder(string database)
     {
-        if (WantsLocalDBConnection())
-        {
-            return new SqlConnectionStringBuilder()
-            {
-                CommandTimeout = 10,
-                ConnectTimeout = 10,
-                DataSource = @"(localdb)\MSSQLLocalDB",
-                Encrypt = false,
-                InitialCatalog = database,
-                IntegratedSecurity = true,
-            };
-        }
+        var host = Environment.GetEnvironmentVariable("DATABASE_HOST") ?? @"(localdb)\mssqllocaldb";
+        var username = Environment.GetEnvironmentVariable("DATABASE_USER") ?? string.Empty;
+        var password = Environment.GetEnvironmentVariable("DATABASE_PASSWORD") ?? string.Empty;
+        var isLocalDb = host.StartsWith("(localdb)", StringComparison.OrdinalIgnoreCase);
+
         return new SqlConnectionStringBuilder()
         {
             CommandTimeout = 10,
             ConnectTimeout = 10,
-            DataSource = Environment.GetEnvironmentVariable("DATABASE_HOST"),
+            DataSource = host,
             Encrypt = false,
             InitialCatalog = database,
-            Password = Environment.GetEnvironmentVariable("DATABASE_PASSWORD"),
-            UserID = Environment.GetEnvironmentVariable("DATABASE_USER"),
+            IntegratedSecurity = isLocalDb,
+            Password = password,
+            UserID = username,
         };
     }
 
@@ -104,12 +95,6 @@ public class DatabaseFixture : IDisposable
             cmd.Prepare();
             cmd.ExecuteNonQuery();
         }
-    }
-
-    static bool WantsLocalDBConnection()
-    {
-        var host = Environment.GetEnvironmentVariable("DATABASE_HOST");
-        return string.IsNullOrEmpty(host);
     }
 
     public void Dispose()
