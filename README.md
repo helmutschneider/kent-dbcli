@@ -5,33 +5,30 @@ It outputs an SQL-file similar to `pg_dump` or `mysqldump`.
 ## Usage
 ```shell
 Usage:
-  dump-schema
-  dump-database
+  backup
 
 Arguments:
-  -h, --host                       Database host.
-  -d, --database                   Database name.
-  -u, --user
-  -p, --password
-  -c, --connection-string          Raw connection string. Overrides the other connection arguments.
-  -o, --output                     Path to write the output to.
+  -S, --server                     Database host.
+  -d, --database-name              Database name.
+  -U, --user-name                  Database username.
+  -P, --password                   Database password.
+  -o, --output-file                Path to write the output to.
   --verbose                        Print progress messages from SQL Tools Service.
-  --exclude-table                  Exclude data from a table. Only applies to 'dump-database'. May be specified multiple times.
-```
+  --exclude-table                  Exclude data from a table. May be specified multiple times.
+  --schema-only                    Only backup the database schema, eg. no data.
 
-To dump the schema only:
-```shell
-./Kent.DbCli dump-schema -h localhost -d dbname -u sa -p password
-```
+Examples:
+  backup -S localhost -d dbname -U sa -P password
 
-To dump the schema and data:
-```shell
-./Kent.DbCli dump-database -h localhost -d dbname -u sa -p password
-```
+The 'backup' command assumes localhost, so this works too:
+  backup -d dbname -U sa -P password
 
-To dump the schema and data, excluding the data from a table:
-```shell
-./Kent.DbCli dump-database -h localhost -d dbname -u sa -p password --exclude-table TableName
+To backup a localdb instance:
+  backup -S '(LocalDb)\\MSSQLLocalDB' -d dbname
+
+Most arguments should behave exactly like their sqlcmd counterparts.
+
+  https://learn.microsoft.com/en-us/sql/tools/sqlcmd/sqlcmd-utility
 ```
 
 ## Background
