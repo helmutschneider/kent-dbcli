@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using Microsoft.SqlTools.ServiceLayer.Scripting;
 using Microsoft.SqlTools.ServiceLayer.Scripting.Contracts;
+using System.Text;
 
 namespace Kent.DbCli;
 
@@ -229,6 +230,11 @@ Most arguments should behave exactly like their sqlcmd counterparts.
             {
                 output.Seek(0, SeekOrigin.End);
 
+                // the output from 'SqlTools.ServiceLayer' seems to be dumped
+                // in-order with no regard for foreign keys between tables. let's
+                // just disable any constraints while we import the data.
+                output.Write(Encoding.Unicode.GetBytes("EXEC sp_MSForEachTable 'ALTER TABLE ? NOCHECK CONSTRAINT ALL'\r\nGO\r\n"));
+
                 // both files are written as UTF16LE and both naturally contain
                 // byte order marks. we don't want the BOM from the second file,
                 // as it will be appended to the first.
@@ -240,6 +246,7 @@ Most arguments should behave exactly like their sqlcmd counterparts.
                 Debug.Assert(bom[1] == '\xFE');
 
                 input.CopyTo(output);
+                output.Write(Encoding.Unicode.GetBytes("EXEC sp_MSForEachTable 'ALTER TABLE ? CHECK CONSTRAINT ALL'\r\nGO\r\n"));
             }
         }
 
