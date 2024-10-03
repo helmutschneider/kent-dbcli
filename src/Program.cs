@@ -18,7 +18,8 @@ public class Program
 {
     static readonly Argument<string> ARGUMENT_HOST = new("-h", "--host")
     {
-        Description = "Database host."
+        Description = "Database host.",
+        Default = "localhost",
     };
     static readonly Argument<string> ARGUMENT_DATABASE = new("-d", "--database")
     {
@@ -26,13 +27,9 @@ public class Program
     };
     static readonly Argument<string> ARGUMENT_USER = new("-u", "--user");
     static readonly Argument<string> ARGUMENT_PASSWORD = new("-p", "--password");
-    static readonly Argument<string> ARGUMENT_CONNECTION_STRING = new("-c", "--connection-string")
-    {
-        Description = "Raw connection string. Overrides the other connection arguments."
-    };
     static readonly Argument<string> ARGUMENT_OUT_FILE = new("-o", "--output")
     {
-        Description = "Path to write the output to."
+        Description = "Path to write the output to.",
     };
     static readonly Argument<bool> ARGUMENT_VERBOSE = new("--verbose")
     {
@@ -43,12 +40,15 @@ public class Program
     {
         Description = "Exclude data from a table. Only applies to 'dump-database'. May be specified multiple times.",
     };
+    static readonly Argument<bool> ARGUMENT_SCHEMA_ONLY = new("--schema-only")
+    {
+        Description = "Only backup the database schema, eg. no data.",
+    };
     static readonly IArgument[] ARGUMENTS = new IArgument[] {
         ARGUMENT_HOST,
         ARGUMENT_DATABASE,
         ARGUMENT_USER,
         ARGUMENT_PASSWORD,
-        ARGUMENT_CONNECTION_STRING,
         ARGUMENT_OUT_FILE,
         ARGUMENT_VERBOSE,
         ARGUMENT_EXCLUDE_TABLE,
@@ -56,8 +56,10 @@ public class Program
 
     static readonly Dictionary<string, CommandFn> _commands = new()
     {
-        {"dump-schema", DumpSchemaAsync},
-        {"dump-database", DumpDatabaseAsync},
+        {"backup", BackupAsync},
+
+        // TODO: implement!
+        // {"restore", RestoreAsync},
     };
 
     const string SCRIPT_DESTINATION_FILE = "ToSingleFile";
@@ -145,29 +147,7 @@ public class Program
         Console.WriteLine("  dump-database -h localhost -d dbname -u sa -p password");
     }
 
-    static async Task<int> DumpSchemaAsync(string[] args)
-    {
-        var opts = CreateScriptingParams(args);
-        if (opts == null)
-        {
-            return 1;
-        }
-
-        opts.ScriptOptions.TypeOfDataToScript = SCRIPT_SCHEMA;
-
-        var verbose = GetNamedArgument(args, ARGUMENT_VERBOSE);
-        var status = await RunScriptRequestAsync(verbose, opts);
-
-        if (status != ScriptStatus.Success)
-        {
-            return 1;
-        }
-
-        Console.WriteLine($"[OK] Script written to '{opts.FilePath}'");
-        return 0;
-    }
-
-    static async Task<int> DumpDatabaseAsync(string[] args)
+    static async Task<int> BackupAsync(string[] args)
     {
         // dump the schema first. then dump the data separately so we can control
         // which tables we want to exclude.
@@ -182,11 +162,18 @@ public class Program
         schemaOpts.ScriptOptions.TypeOfDataToScript = SCRIPT_SCHEMA;
 
         var verbose = GetNamedArgument(args, ARGUMENT_VERBOSE);
+        var schemaOnly = GetNamedArgument(args, ARGUMENT_SCHEMA_ONLY);
         var status = await RunScriptRequestAsync(verbose, schemaOpts);
 
         if (status != ScriptStatus.Success)
         {
             return 1;
+        }
+
+        if (schemaOnly)
+        {
+            Console.WriteLine($"[OK] Script written to '{schemaOpts.FilePath}'");
+            return 0;
         }
 
         var dataOpts = CreateScriptingParams(args);
@@ -227,7 +214,7 @@ public class Program
                 // as it will be appended to the first.
                 var bom = new byte[2];
                 var read = input.Read(bom);
-                
+
                 Debug.Assert(read == 2);
                 Debug.Assert(bom[0] == '\xFF');
                 Debug.Assert(bom[1] == '\xFE');
@@ -244,12 +231,24 @@ public class Program
 
     static ScriptingParams? CreateScriptingParams(string[] args)
     {
+        var connStrBuilder = new SqlConnectionStringBuilder
+        {
+            CommandTimeout = 10,
+            ConnectTimeout = 10,
+            DataSource = GetNamedArgument(args, ARGUMENT_HOST),
+            Encrypt = false,
+            InitialCatalog = GetNamedArgument(args, ARGUMENT_DATABASE),
+            IntegratedSecurity = false,
+            UserID = GetNamedArgument(args, ARGUMENT_USER),
+            Password = GetNamedArgument(args, ARGUMENT_PASSWORD),
+        };
+
         var outfile = GetNamedArgument(args, ARGUMENT_OUT_FILE);
 
         if (string.IsNullOrEmpty(outfile))
         {
             var dt = DateTimeOffset.Now.ToString("yyyyMMdd-HHmmss");
-            outfile = $"script-{dt}.sql";
+            outfile = $"{connStrBuilder.InitialCatalog}-{dt}.sql";
         }
 
         // the 'FilePath' property must contain a directory when given to the scripting service.
@@ -259,33 +258,9 @@ public class Program
             outfile = Path.Join(Directory.GetCurrentDirectory(), outfile);
         }
 
-        var connStr = GetNamedArgument(args, ARGUMENT_CONNECTION_STRING);
-
-        if (string.IsNullOrEmpty(connStr))
-        {
-            var builder = new SqlConnectionStringBuilder
-            {
-                CommandTimeout = 10,
-                ConnectTimeout = 10,
-                DataSource = GetNamedArgument(args, ARGUMENT_HOST),
-                Encrypt = false,
-                InitialCatalog = GetNamedArgument(args, ARGUMENT_DATABASE),
-                IntegratedSecurity = false,
-                UserID = GetNamedArgument(args, ARGUMENT_USER),
-                Password = GetNamedArgument(args, ARGUMENT_PASSWORD),
-            };
-
-            if (string.IsNullOrEmpty(builder.DataSource))
-            {
-                return null;
-            }
-
-            connStr = builder.ConnectionString;
-        }
-
         var opts = new ScriptingParams
         {
-            ConnectionString = connStr,
+            ConnectionString = connStrBuilder.ConnectionString,
             ExcludeTypes = new List<string>()
             {
                 // make sure we don't include any 'CREATE DATABASE' queries in the dump.
