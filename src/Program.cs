@@ -4,11 +4,12 @@ using System.Diagnostics;
 using System.Linq;
 using System.IO;
 using System.Threading.Tasks;
+using System.Text;
 
 using Microsoft.Data.SqlClient;
 using Microsoft.SqlTools.ServiceLayer.Scripting;
-using Microsoft.SqlTools.ServiceLayer.Scripting.Contracts;
-using System.Text;
+using Microsoft.SqlTools.SqlCore.Scripting;
+using Microsoft.SqlTools.SqlCore.Scripting.Contracts;
 
 namespace Kent.DbCli;
 
@@ -152,6 +153,7 @@ public class Program
         {
             Console.WriteLine("  {0,-32} {1}", string.Join(", ", arg.Names), arg.Description);
         }
+
         Console.WriteLine(@"
 Examples:
   backup -S localhost -d dbname -U sa -P password

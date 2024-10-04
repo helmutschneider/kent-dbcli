@@ -4,12 +4,32 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>Kent.DbCli</RootNamespace>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <WarningsAsErrors>Nullable</WarningsAsErrors>
   </PropertyGroup>
+
+  <UsingTask
+    TaskName="DownloadServiceLayerTask"
+    TaskFactory="RoslynCodeTaskFactory"
+    AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup />
+    <Task>
+      <Code
+        Type="Class"
+        Source="$(ProjectDir)/DownloadServiceLayerTask.cs"
+        Language="cs"
+      />
+    </Task>
+  </UsingTask>
+
+  <Target Name="DownloadServiceLayer" BeforeTargets="BeforeBuild">
+    <DownloadServiceLayerTask
+      ServiceLayerPath="$(ProjectDir)/../servicelayer"
+    />
+  </Target>
 
   <!-- https://github.com/microsoft/sqltoolsservice/releases/tag/4.5.0.15 -->
 
@@ -19,6 +39,9 @@
     </Reference>
     <Reference Include="Microsoft.SqlTools.Hosting.dll">
       <HintPath>$(ServiceLayerPath)\Microsoft.SqlTools.Hosting.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.SqlTools.SqlCore.dll">
+      <HintPath>$(ServiceLayerPath)\Microsoft.SqlTools.SqlCore.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json.dll">
       <HintPath>$(ServiceLayerPath)\Newtonsoft.Json.dll</HintPath>
@@ -69,6 +92,10 @@
 
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' Or ($([MSBuild]::IsOsPlatform('Windows')) And '$(RuntimeIdentifier)' == '')">
     <None Include="$(ServiceLayerPath)\Microsoft.Data.SqlClient.SNI.dll" CopyToOutputDirectory="Always" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.11.4" />
   </ItemGroup>
 
 </Project>

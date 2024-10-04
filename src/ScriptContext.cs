@@ -6,6 +6,7 @@ using Microsoft.SqlTools.Hosting.Protocol;
 using Microsoft.SqlTools.Hosting.Protocol.Contracts;
 using Microsoft.SqlTools.Hosting.Protocol.Serializers;
 using Microsoft.SqlTools.ServiceLayer.Scripting.Contracts;
+using Microsoft.SqlTools.SqlCore.Scripting.Contracts;
 
 namespace Kent.DbCli;
 

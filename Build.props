@@ -1,15 +1,15 @@
 <Project>
 
   <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'osx-arm64' Or ($([MSBuild]::IsOsPlatform('OSX')) And '$(RuntimeIdentifier)' == '')">
-    <ServiceLayerPath>..\servicelayer-osx-arm64</ServiceLayerPath>
+    <ServiceLayerPath>..\servicelayer\osx-arm64</ServiceLayerPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' Or ($([MSBuild]::IsOsPlatform('Windows')) And '$(RuntimeIdentifier)' == '')">
-    <ServiceLayerPath>..\servicelayer-win-x64</ServiceLayerPath>
+    <ServiceLayerPath>..\servicelayer\win-x64</ServiceLayerPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64' Or ($([MSBuild]::IsOsPlatform('Linux')) And '$(RuntimeIdentifier)' == '')">
-    <ServiceLayerPath>..\servicelayer-rhel-x64</ServiceLayerPath>
+    <ServiceLayerPath>..\servicelayer\linux-x64</ServiceLayerPath>
   </PropertyGroup>
 
 </Project>
