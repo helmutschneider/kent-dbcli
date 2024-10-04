@@ -24,6 +24,8 @@ public class DownloadServiceLayerTask : Task
 
     public override bool Execute()
     {
+        Console.Write("Downloading Microsoft.SqlTools.ServiceLayer... ");
+        
         if (string.IsNullOrEmpty(ServiceLayerPath))
         {
             Console.WriteLine($"{ServiceLayerPath} was not set.");
@@ -80,6 +82,8 @@ public class DownloadServiceLayerTask : Task
                 }
             }
         }
+
+        Console.WriteLine("OK");
 
         return true;
     }
