@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -34,8 +35,8 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
     {
         var sln = FindSolutionPath();
         var path = Path.Combine(sln!, "dump.sql");
-        
-        var ok = await Program.InvokeAsync(new [] {
+
+        var ok = await Program.InvokeAsync(new[] {
             "backup",
             "-S", _db.ConnectionStringBuilder.DataSource,
             "-U", _db.ConnectionStringBuilder.UserID,
@@ -46,7 +47,7 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
         });
 
         Assert.Equal(0, ok);
-        
+
         var dump = File.ReadAllText(path);
 
         Assert.DoesNotContain("INSERT", dump);
@@ -57,8 +58,8 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
     {
         var sln = FindSolutionPath();
         var path = Path.Combine(sln!, "dump.sql");
-        
-        var ok = await Program.InvokeAsync(new [] {
+
+        var ok = await Program.InvokeAsync(new[] {
             "backup",
             "-S", _db.ConnectionStringBuilder.DataSource,
             "-U", _db.ConnectionStringBuilder.UserID,
@@ -69,7 +70,7 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
 
         Assert.Equal(0, ok);
         Assert.True(File.Exists(path));
-        
+
         var dump = File.ReadAllText(path);
         var numInserts = Regex.Matches(dump, @"^INSERT \[dbo\]\.", RegexOptions.Multiline);
 
@@ -81,8 +82,8 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
     {
         var sln = FindSolutionPath();
         var path = Path.Combine(sln!, "dump.sql");
-        
-        var ok = await Program.InvokeAsync(new [] {
+
+        var ok = await Program.InvokeAsync(new[] {
             "backup",
             "-S", _db.ConnectionStringBuilder.DataSource,
             "-U", _db.ConnectionStringBuilder.UserID,
@@ -94,10 +95,10 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
 
         Assert.Equal(0, ok);
         Assert.True(File.Exists(path));
-        
+
         var dump = File.ReadAllText(path);
         var exists = Regex.IsMatch(dump, @"^INSERT \[dbo\]\.", RegexOptions.Multiline);
-        
+
         Assert.False(exists);
     }
 
@@ -106,8 +107,8 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
     {
         var sln = FindSolutionPath();
         var path = Path.Combine(sln!, "dump.sql");
-        
-        var ok = await Program.InvokeAsync(new [] {
+
+        var ok = await Program.InvokeAsync(new[] {
             "backup",
             "-S", _db.ConnectionStringBuilder.DataSource,
             "-U", _db.ConnectionStringBuilder.UserID,
@@ -131,6 +132,49 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
         }
 
         Assert.Equal(1, foundByteOrderMarks);
+    }
+
+    [Fact]
+    public async Task RestoreDoesStuff()
+    {
+        var script = """
+        CREATE TABLE [Boat] (
+            [Id] INTEGER PRIMARY KEY NOT NULL IDENTITY(1, 1),
+            [Name] NVARCHAR(MAX) NOT NULL
+        )
+        GO
+        INSERT INTO [Boat] ([Name]) VALUES ('Boaty McBoatFace')
+        GO
+        """;
+        var sln = FindSolutionPath();
+        var path = Path.Combine(sln!, "boat.sql");
+
+        File.WriteAllBytes(path, Encoding.UTF8.GetBytes(script));
+        var ok = await Program.InvokeAsync(new[] {
+            "restore",
+            "-S", _db.ConnectionStringBuilder.DataSource,
+            "-U", _db.ConnectionStringBuilder.UserID,
+            "-P", _db.ConnectionStringBuilder.Password,
+            "-d", _db.DatabaseName,
+            "--input-file", path,
+            "--verbose",
+        });
+        Assert.Equal(0, ok);
+
+        using var cmd = _db.Connection.CreateCommand();
+        cmd.CommandType = System.Data.CommandType.Text;
+        cmd.CommandText = "SELECT [Name] FROM [Boat]";
+        cmd.Prepare();
+
+        var names = new List<string>();
+        using var rdr = cmd.ExecuteReader();
+        while (rdr.Read())
+        {
+            names.Add(rdr.GetString(0));
+        }
+
+        Assert.Single(names);
+        Assert.Equal("Boaty McBoatFace", names[0]);
     }
 
     public void Dispose()

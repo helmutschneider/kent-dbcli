@@ -6,22 +6,23 @@ It outputs an SQL-file similar to `pg_dump` or `mysqldump`.
 ```shell
 Usage:
   backup
+  restore
 
 Arguments:
-  -S, --server                     Database host.
-  -d, --database-name              Database name.
-  -U, --user-name                  Database username.
-  -P, --password                   Database password.
-  -o, --output-file                Path to write the output to.
-  --verbose                        Print progress messages from SQL Tools Service.
-  --exclude-table                  Exclude data from a table. May be specified multiple times.
-  --schema-only                    Only backup the database schema, eg. no data.
+  -S, --server                     Database host
+  -d, --database-name              Database name
+  -U, --user-name                  Database username
+  -P, --password                   Database password
+  -i, --input-file                 Input script path (restore)
+  -o, --output-file                Output script path (backup)
+  -t, --query-timeout              Query timeout for individual statements
+  --verbose                        Print progress messages from SQL Tools Service
+  --exclude-table                  Exclude data from a table. May be specified multiple times (backup)
+  --schema-only                    Export the database schema without including table data (backup)
 
 Examples:
   backup -S localhost -d dbname -U sa -P password
-
-The 'backup' command assumes localhost, so this works too:
-  backup -d dbname -U sa -P password
+  restore -S localhost -d dbname -U sa -P password -i my-database-backup.sql
 
 To backup a localdb instance:
   backup -S '(LocalDb)\\MSSQLLocalDB' -d dbname
@@ -29,6 +30,7 @@ To backup a localdb instance:
 Most arguments should behave exactly like their sqlcmd counterparts.
 
   https://learn.microsoft.com/en-us/sql/tools/sqlcmd/sqlcmd-utility
+
 ```
 
 ## Background

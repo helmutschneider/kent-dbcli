@@ -7,6 +7,7 @@ public class Argument<T> : IArgument
 {
     public string[] Names { get; }
     public string Description { get; init; } = string.Empty;
+    public bool Required { get; init; } = false;
     public T? Default { get; init; } = default(T);
 
     public Argument(string name, params string[] names)
