@@ -44,50 +44,8 @@
     <Reference Include="Microsoft.SqlTools.SqlCore.dll">
       <HintPath>$(ServiceLayerPath)\Microsoft.SqlTools.SqlCore.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json.dll">
-      <HintPath>$(ServiceLayerPath)\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.ConnectionInfo.dll">
-      <HintPath>$(ServiceLayerPath)\Microsoft.SqlServer.ConnectionInfo.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.Management.SqlScriptPublish.dll">
-      <HintPath>$(ServiceLayerPath)\Microsoft.SqlServer.Management.SqlScriptPublish.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.Data.SqlClient.dll">
       <HintPath>$(ServiceLayerPath)\Microsoft.Data.SqlClient.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.Management.Sdk.Sfc.dll">
-      <HintPath>$(ServiceLayerPath)\Microsoft.SqlServer.Management.Sdk.Sfc.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.Smo.dll">
-      <HintPath>$(ServiceLayerPath)\Microsoft.SqlServer.Smo.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Configuration.ConfigurationManager.dll">
-      <HintPath>$(ServiceLayerPath)\System.Configuration.ConfigurationManager.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Identity.Client.dll">
-      <HintPath>$(ServiceLayerPath)\Microsoft.Identity.Client.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.Dmf.Common.dll">
-      <HintPath>$(ServiceLayerPath)\Microsoft.SqlServer.Dmf.Common.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.SqlEnum.dll">
-      <HintPath>$(ServiceLayerPath)\Microsoft.SqlServer.SqlEnum.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.SmoExtended.dll">
-      <HintPath>$(ServiceLayerPath)\Microsoft.SqlServer.SmoExtended.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.Server.dll">
-      <HintPath>$(ServiceLayerPath)\Microsoft.SqlServer.Server.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Data.Tools.Sql.BatchParser.dll">
-      <HintPath>$(ServiceLayerPath)\Microsoft.Data.Tools.Sql.BatchParser.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.Smo.Notebook.dll">
-      <HintPath>$(ServiceLayerPath)\Microsoft.SqlServer.Smo.Notebook.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Security.Permissions.dll">
-      <HintPath>$(ServiceLayerPath)\System.Security.Permissions.dll</HintPath>
     </Reference>
   </ItemGroup>
 
