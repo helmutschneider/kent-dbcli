@@ -9,6 +9,7 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <WarningsAsErrors>Nullable</WarningsAsErrors>
+    <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
   <UsingTask
