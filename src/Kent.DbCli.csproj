@@ -32,7 +32,7 @@
     />
   </Target>
 
-  <!-- https://github.com/microsoft/sqltoolsservice/releases/tag/4.5.0.15 -->
+  <!-- https://github.com/microsoft/sqltoolsservice/releases/tag/5.0.20241003.1 -->
 
   <ItemGroup>
     <Reference Include="MicrosoftSqlToolsServiceLayer.dll">
