@@ -9,7 +9,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 env:
-  DOTNET_VERSION: 8.0.x
+  DOTNET_VERSION: 6.0.x
   DATABASE_HOST: 127.0.0.1
   DATABASE_USER: sa
   DATABASE_PASSWORD: 8rLCbRdR

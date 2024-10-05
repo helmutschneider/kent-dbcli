@@ -8,8 +8,7 @@ using System.Text;
 
 using Microsoft.Data.SqlClient;
 using Microsoft.SqlTools.ServiceLayer.Scripting;
-using Microsoft.SqlTools.SqlCore.Scripting;
-using Microsoft.SqlTools.SqlCore.Scripting.Contracts;
+using Microsoft.SqlTools.ServiceLayer.Scripting.Contracts;
 using Microsoft.SqlTools.ServiceLayer.BatchParser;
 using Microsoft.SqlTools.ServiceLayer.BatchParser.ExecutionEngineCode;
 using System.Threading;
