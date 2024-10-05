@@ -223,9 +223,9 @@ Most arguments should behave exactly like their sqlcmd counterparts.
 
         var verbose = GetNamedArgument(args, ARGUMENT_VERBOSE);
         var schemaOnly = GetNamedArgument(args, ARGUMENT_SCHEMA_ONLY);
-        var status = await RunScriptRequestAsync(verbose, schemaOpts);
+        var ok = await RunScriptRequestAsync(verbose, schemaOpts);
 
-        if (status != ScriptStatus.Success)
+        if (!ok)
         {
             return 1;
         }
@@ -255,9 +255,9 @@ Most arguments should behave exactly like their sqlcmd counterparts.
             });
         }
 
-        status = await RunScriptRequestAsync(verbose, dataOpts);
+        ok = await RunScriptRequestAsync(verbose, dataOpts);
 
-        if (status != ScriptStatus.Success)
+        if (!ok)
         {
             return 1;
         }
@@ -303,7 +303,7 @@ Most arguments should behave exactly like their sqlcmd counterparts.
 
         if (!File.Exists(inputFile))
         {
-            Console.WriteLine("[ERROR] input file '{0}' does not exist", inputFile);
+            Console.WriteLine("[ERROR] Input file '{0}' does not exist", inputFile);
             return 1;
         }
 
@@ -352,7 +352,7 @@ Most arguments should behave exactly like their sqlcmd counterparts.
         );
 
         parser.Parse();
-        
+
         if (verbose)
         {
             var elapsed = DateTime.UtcNow - tstart;
@@ -438,23 +438,42 @@ Most arguments should behave exactly like their sqlcmd counterparts.
         return true;
     }
 
-    static async Task<ScriptStatus> RunScriptRequestAsync(bool verbose, ScriptingParams opts)
+    static Task<bool> RunScriptRequestAsync(bool verbose, ScriptingParams opts)
     {
-        var ctx = new ScriptContext(verbose);
+        var taskCompletion = new TaskCompletionSource<bool>(false);
+        var operation = new ScriptingScriptOperation(opts, null);
 
-        using (var scripting = new ScriptingService())
+        operation.ProgressNotification += (sender, args) =>
         {
-            await scripting.HandleScriptExecuteRequest(opts, ctx);
-            while (ctx.Status == ScriptStatus.InProgress)
+            if (verbose)
             {
-                await Task.Delay(250);
+                Console.WriteLine("[{0}/{1}] {2}, {3}, {4}", args.CompletedCount, args.TotalCount, args.Status, args.ScriptingObject.Type, args.ScriptingObject);
             }
-        }
+            if (!string.IsNullOrEmpty(args.ErrorMessage))
+            {
+                Console.WriteLine("{0}", args.ErrorMessage);
+                Console.WriteLine("{0}", args.ErrorDetails);
+            }
+        };
+        operation.CompleteNotification += (sender, args) =>
+        {
+            if (args.HasError)
+            {
+                Console.WriteLine("{0}", args.ErrorMessage);
+                Console.WriteLine("{0}", args.ErrorDetails);
+                taskCompletion.SetResult(false);
+            }
+            else
+            {
+                taskCompletion.SetResult(true);
+            }
+        };
+        operation.Execute();
 
-        return ctx.Status;
+        return taskCompletion.Task;
     }
 
-    public class BatchEventHandler : IBatchEventsHandler
+    class BatchEventHandler : IBatchEventsHandler
     {
         public SqlError? Error { get; private set; }
 

@@ -137,7 +137,7 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
     [Fact]
     public async Task RestoreDoesStuff()
     {
-        var script = """
+        var script = @"
         CREATE TABLE [Boat] (
             [Id] INTEGER PRIMARY KEY NOT NULL IDENTITY(1, 1),
             [Name] NVARCHAR(MAX) NOT NULL
@@ -145,7 +145,7 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
         GO
         INSERT INTO [Boat] ([Name]) VALUES ('Boaty McBoatFace')
         GO
-        """;
+        ";
         var sln = FindSolutionPath();
         var path = Path.Combine(sln!, "boat.sql");
 

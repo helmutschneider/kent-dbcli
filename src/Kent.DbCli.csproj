@@ -38,9 +38,6 @@
     <Reference Include="MicrosoftSqlToolsServiceLayer.dll">
       <HintPath>$(ServiceLayerPath)\MicrosoftSqlToolsServiceLayer.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.SqlTools.Hosting.dll">
-      <HintPath>$(ServiceLayerPath)\Microsoft.SqlTools.Hosting.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.SqlTools.ManagedBatchParser.dll">
       <HintPath>$(ServiceLayerPath)\Microsoft.SqlTools.ManagedBatchParser.dll</HintPath>
     </Reference>
