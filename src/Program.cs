@@ -15,8 +15,6 @@ using Microsoft.SqlTools.ServiceLayer.BatchParser.ExecutionEngineCode;
 
 namespace Kent.DbCli;
 
-using CommandFn = Func<string[], Task<int>>;
-
 public class Program
 {
     // let's keep these argument names vaguely similar to 'sqlcmd'...
@@ -44,20 +42,20 @@ public class Program
     };
     static readonly Argument<string> ARGUMENT_INPUT_FILE = new("-i", "--input-file")
     {
-        Description = "Input script path (restore)",
+        Description = "Input script path",
         Required = true,
     };
     static readonly Argument<string> ARGUMENT_OUTPUT_FILE = new("-o", "--output-file")
     {
-        Description = "Output script path (backup)",
+        Description = "Output script path",
     };
     static readonly Argument<string> ARGUMENT_EXCLUDE_TABLE = new("--exclude-table")
     {
-        Description = "Exclude data from a table. May be specified multiple times (backup)",
+        Description = "Exclude data from a table. May be specified multiple times",
     };
     static readonly Argument<bool> ARGUMENT_SCHEMA_ONLY = new("--schema-only")
     {
-        Description = "Export the database schema without including table data (backup)",
+        Description = "Export the database schema without including table data",
     };
     static readonly Argument<int> ARGUMENT_TIMEOUT = new("-t", "--query-timeout")
     {
@@ -66,26 +64,43 @@ public class Program
     };
     static readonly Argument<int> ARGUMENT_BATCH_SIZE = new("--batch-size")
     {
-        Description = "Transaction batch size for query execution (restore)",
+        Description = "Transaction batch size for query execution",
         Default = 100,
     };
-    static readonly IArgument[] ARGUMENTS = new IArgument[] {
-        ARGUMENT_SERVER,
-        ARGUMENT_DATABASE,
-        ARGUMENT_USER,
-        ARGUMENT_PASSWORD,
-        ARGUMENT_INPUT_FILE,
-        ARGUMENT_OUTPUT_FILE,
-        ARGUMENT_TIMEOUT,
-        ARGUMENT_EXCLUDE_TABLE,
-        ARGUMENT_SCHEMA_ONLY,
-        ARGUMENT_BATCH_SIZE,
-    };
 
-    static readonly Dictionary<string, CommandFn> _commands = new()
+    static readonly Command[] _commands = new Command[]
     {
-        {"backup", BackupAsync},
-        {"restore", RestoreAsync},
+        new()
+        {
+            Name = "backup",
+            Action = BackupAsync,
+            Arguments =
+            {
+                ARGUMENT_SERVER,
+                ARGUMENT_DATABASE,
+                ARGUMENT_USER,
+                ARGUMENT_PASSWORD,
+                ARGUMENT_OUTPUT_FILE,
+                ARGUMENT_TIMEOUT,
+                ARGUMENT_EXCLUDE_TABLE,
+                ARGUMENT_SCHEMA_ONLY,
+            }
+        },
+        new()
+        {
+            Name = "restore",
+            Action = RestoreAsync,
+            Arguments =
+            {
+                ARGUMENT_SERVER,
+                ARGUMENT_DATABASE,
+                ARGUMENT_USER,
+                ARGUMENT_PASSWORD,
+                ARGUMENT_INPUT_FILE,
+                ARGUMENT_TIMEOUT,
+                ARGUMENT_BATCH_SIZE,
+            },
+        },
     };
 
     const string SCRIPT_DESTINATION_FILE = "ToSingleFile";
@@ -94,13 +109,7 @@ public class Program
     const string SCRIPT_SCHEMA_AND_DATA = "SchemaAndData";
     const string SCRIPT_DATA = "DataOnly";
 
-    public static async Task Main(string[] args)
-    {
-        var code = await InvokeAsync(args);
-        Environment.Exit(code);
-    }
-
-    public static async Task<int> InvokeAsync(string[] args)
+    public static async Task<int> Main(string[] args)
     {
         if (args.Length == 0)
         {
@@ -108,12 +117,20 @@ public class Program
             return 1;
         }
         var name = args[0];
-        if (!_commands.TryGetValue(name, out var fn))
+        var cmd = _commands.FirstOrDefault((x) =>
+        {
+            return x.Name.Equals(name, StringComparison.OrdinalIgnoreCase);
+        });
+        var needsHelp = args.Length == 0
+            || (args.Length >= 1 && "help".Equals(args[0], StringComparison.OrdinalIgnoreCase))
+            || (args.Length >= 1 && "--help".Equals(args[0], StringComparison.OrdinalIgnoreCase));
+            
+        if (cmd == null || needsHelp)
         {
             Usage();
             return 1;
         }
-        var code = await fn(args.Skip(1).ToArray());
+        var code = await cmd.Action(args.Skip(1).ToArray());
         return code;
     }
 
@@ -155,31 +172,16 @@ public class Program
     static void Usage()
     {
         Console.WriteLine("Usage:");
-        foreach (var (name, _) in _commands)
+        foreach (var command in _commands)
         {
-            Console.WriteLine($"  {name}");
+            Console.WriteLine("  {0}", command.Name);
+            foreach (var arg in command.Arguments)
+            {
+                var def = arg.GetDefaultAsString() is string s && !string.IsNullOrEmpty(s) ? $"= {s}" : string.Empty;
+                Console.WriteLine("    {0,-24} {1,-16} {2}", string.Join(", ", arg.Names), def, arg.Description);
+            }
+            Console.WriteLine(string.Empty);
         }
-        Console.WriteLine(string.Empty);
-        Console.WriteLine("Arguments:");
-
-        foreach (var arg in ARGUMENTS)
-        {
-            var def = arg.GetDefaultAsString() is string s ? $"= {s}" : string.Empty;
-            Console.WriteLine("  {0,-24} {1,-16} {2}", string.Join(", ", arg.Names), def, arg.Description);
-        }
-
-        Console.WriteLine(@"
-Examples:
-  backup -S localhost -d dbname -U sa -P password
-  restore -S localhost -d dbname -U sa -P password -i my-database-backup.sql
-
-To backup a localdb instance:
-  backup -S '(LocalDb)\\MSSQLLocalDB' -d dbname
-
-Most arguments should behave exactly like their sqlcmd counterparts.
-
-  https://learn.microsoft.com/en-us/sql/tools/sqlcmd/sqlcmd-utility
-        ");
     }
 
     static SqlConnectionStringBuilder? BuildConnectionString(string[] args)

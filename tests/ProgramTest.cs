@@ -25,7 +25,7 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
     [Fact]
     public async Task WithInvalidCommand()
     {
-        var res = await Program.InvokeAsync(Array.Empty<string>());
+        var res = await Program.Main(Array.Empty<string>());
 
         Assert.Equal(1, res);
     }
@@ -36,7 +36,7 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
         var sln = FindSolutionPath();
         var path = Path.Combine(sln!, "dump.sql");
 
-        var ok = await Program.InvokeAsync(new[] {
+        var ok = await Program.Main(new[] {
             "backup",
             "-S", _db.ConnectionStringBuilder.DataSource,
             "-U", _db.ConnectionStringBuilder.UserID,
@@ -59,7 +59,7 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
         var sln = FindSolutionPath();
         var path = Path.Combine(sln!, "dump.sql");
 
-        var ok = await Program.InvokeAsync(new[] {
+        var ok = await Program.Main(new[] {
             "backup",
             "-S", _db.ConnectionStringBuilder.DataSource,
             "-U", _db.ConnectionStringBuilder.UserID,
@@ -83,7 +83,7 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
         var sln = FindSolutionPath();
         var path = Path.Combine(sln!, "dump.sql");
 
-        var ok = await Program.InvokeAsync(new[] {
+        var ok = await Program.Main(new[] {
             "backup",
             "-S", _db.ConnectionStringBuilder.DataSource,
             "-U", _db.ConnectionStringBuilder.UserID,
@@ -108,7 +108,7 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
         var sln = FindSolutionPath();
         var path = Path.Combine(sln!, "dump.sql");
 
-        var ok = await Program.InvokeAsync(new[] {
+        var ok = await Program.Main(new[] {
             "backup",
             "-S", _db.ConnectionStringBuilder.DataSource,
             "-U", _db.ConnectionStringBuilder.UserID,
@@ -150,7 +150,7 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
         var path = Path.Combine(sln!, "boat.sql");
 
         File.WriteAllBytes(path, Encoding.UTF8.GetBytes(script));
-        var ok = await Program.InvokeAsync(new[] {
+        var ok = await Program.Main(new[] {
             "restore",
             "-S", _db.ConnectionStringBuilder.DataSource,
             "-U", _db.ConnectionStringBuilder.UserID,

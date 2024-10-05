@@ -6,30 +6,23 @@ It outputs an SQL-file similar to `pg_dump` or `mysqldump`.
 ```shell
 Usage:
   backup
+    -S, --server             = localhost      Database host
+    -d, --database-name                       Database name
+    -U, --user-name          = sa             Database username
+    -P, --password                            Database password
+    -o, --output-file                         Output script path
+    -t, --query-timeout      = 10             Query timeout for individual statements
+    --exclude-table                           Exclude data from a table. May be specified multiple times
+    --schema-only            = False          Export the database schema without including table data
+
   restore
-
-Arguments:
-  -S, --server             = localhost      Database host
-  -d, --database-name                       Database name
-  -U, --user-name          = sa             Database username
-  -P, --password           =                Database password
-  -i, --input-file                          Input script path (restore)
-  -o, --output-file                         Output script path (backup)
-  -t, --query-timeout      = 10             Query timeout for individual statements
-  --exclude-table                           Exclude data from a table. May be specified multiple times (backup)
-  --schema-only            = False          Export the database schema without including table data (backup)
-  --batch-size             = 100            Transaction batch size for query execution (restore)
-
-Examples:
-  backup -S localhost -d dbname -U sa -P password
-  restore -S localhost -d dbname -U sa -P password -i my-database-backup.sql
-
-To backup a localdb instance:
-  backup -S '(LocalDb)\\MSSQLLocalDB' -d dbname
-
-Most arguments should behave exactly like their sqlcmd counterparts.
-
-  https://learn.microsoft.com/en-us/sql/tools/sqlcmd/sqlcmd-utility
+    -S, --server             = localhost      Database host
+    -d, --database-name                       Database name
+    -U, --user-name          = sa             Database username
+    -P, --password                            Database password
+    -i, --input-file                          Input script path
+    -t, --query-timeout      = 10             Query timeout for individual statements
+    --batch-size             = 100            Transaction batch size for query execution
 ```
 
 ## Background
