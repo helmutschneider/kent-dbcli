@@ -29,4 +29,17 @@ public class ArgumentTest
 
         Assert.Equal(expected, parsed);
     }
+
+    [Fact]
+    public void GetFromStringArgs()
+    {
+        var args = new[] {"--yee", "--boi", "--cowabunga", "420"};
+        var x = new Argument<bool>("--yee");
+        var y = new Argument<int>("--cowabunga");
+        var z = new Argument<bool>("--hello");
+
+        Assert.True(x.GetOrDefault(args));
+        Assert.Equal(420, y.GetOrDefault(args));
+        Assert.False(z.GetOrDefault(args));
+    }
 }

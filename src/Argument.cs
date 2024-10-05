@@ -1,5 +1,6 @@
 using System;
-using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Kent.DbCli;
 
@@ -16,6 +17,65 @@ public class Argument<T> : IArgument
         this.Names[0] = name;
 
         Array.Copy(names, 0, this.Names, 1, names.Length);
+    }
+
+    public string? GetDefaultAsString()
+        => this.Default?.ToString();
+
+    public T? GetOrDefault(string[] args)
+    {
+        var parsed = GetArray(args);
+        if (parsed.Count != 0)
+        {
+            return parsed[0];
+        }
+        return this.Default;
+    }
+
+    public IReadOnlyList<T> GetArray(string[] args)
+    {
+        var values = new List<T>();
+
+        for (var i = 0; i < args.Length; ++i)
+        {
+            var maybeName = args[i].Trim();
+
+            if (!this.Names.Contains(maybeName))
+            {
+                continue;
+            }
+
+            var next = (i < (args.Length - 1)) ? args[i + 1] : string.Empty;
+            var parsed = Parse(next);
+
+            if (parsed != null)
+            {
+                values.Add(parsed);
+            }
+        }
+
+        return values;
+    }
+
+    public bool TryGet(string[] args, out T? value)
+    {
+        if (!this.Required)
+        {
+            value = this.Default;
+            return true;
+        }
+
+        var given = GetOrDefault(args);
+
+        if (given == null || given.Equals(this.Default))
+        {
+            Console.WriteLine("[ERROR] argument '{0}' was not given", this.Names.Last());
+            value = default(T);
+            return false;
+        }
+
+        value = given;
+        return true;
     }
 
     public T? Parse(string value)
@@ -52,7 +112,4 @@ public class Argument<T> : IArgument
 
         return this.Default;
     }
-
-    public string? GetDefaultAsString()
-        => this.Default?.ToString();
 }
