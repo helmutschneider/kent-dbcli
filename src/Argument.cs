@@ -42,8 +42,17 @@ public class Argument<T> : IArgument
                     return (T)(object)value;
                 }
                 break;
+            case Argument<int>:
+                if (!valueLooksLikeArgument && int.TryParse(value, out var x))
+                {
+                    return (T)(object)x;
+                }
+                break;
         }
 
         return this.Default;
     }
+
+    public string? GetDefaultAsString()
+        => this.Default?.ToString();
 }

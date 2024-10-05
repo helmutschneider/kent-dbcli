@@ -4,6 +4,7 @@ namespace Kent.DbCli;
 
 public interface IArgument
 {
-    public string[] Names { get; }
-    public string Description { get; }
+    string[] Names { get; }
+    string Description { get; }
+    string? GetDefaultAsString();
 }

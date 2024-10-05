@@ -9,16 +9,16 @@ Usage:
   restore
 
 Arguments:
-  -S, --server                     Database host
-  -d, --database-name              Database name
-  -U, --user-name                  Database username
-  -P, --password                   Database password
-  -i, --input-file                 Input script path (restore)
-  -o, --output-file                Output script path (backup)
-  -t, --query-timeout              Query timeout for individual statements
-  --verbose                        Print progress messages from SQL Tools Service
-  --exclude-table                  Exclude data from a table. May be specified multiple times (backup)
-  --schema-only                    Export the database schema without including table data (backup)
+  -S, --server             = localhost      Database host
+  -d, --database-name                       Database name
+  -U, --user-name          = sa             Database username
+  -P, --password           =                Database password
+  -i, --input-file                          Input script path (restore)
+  -o, --output-file                         Output script path (backup)
+  -t, --query-timeout      = 10             Query timeout for individual statements
+  --exclude-table                           Exclude data from a table. May be specified multiple times (backup)
+  --schema-only            = False          Export the database schema without including table data (backup)
+  --batch-size             = 100            Transaction batch size for query execution (restore)
 
 Examples:
   backup -S localhost -d dbname -U sa -P password
@@ -30,7 +30,6 @@ To backup a localdb instance:
 Most arguments should behave exactly like their sqlcmd counterparts.
 
   https://learn.microsoft.com/en-us/sql/tools/sqlcmd/sqlcmd-utility
-
 ```
 
 ## Background

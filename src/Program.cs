@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.IO;
@@ -11,7 +12,6 @@ using Microsoft.SqlTools.ServiceLayer.Scripting;
 using Microsoft.SqlTools.ServiceLayer.Scripting.Contracts;
 using Microsoft.SqlTools.ServiceLayer.BatchParser;
 using Microsoft.SqlTools.ServiceLayer.BatchParser.ExecutionEngineCode;
-using System.Threading;
 
 namespace Kent.DbCli;
 
@@ -42,11 +42,6 @@ public class Program
         Description = "Database password",
         Default = string.Empty,
     };
-    static readonly Argument<bool> ARGUMENT_VERBOSE = new("--verbose")
-    {
-        Description = "Print progress messages from SQL Tools Service",
-        Default = false,
-    };
     static readonly Argument<string> ARGUMENT_INPUT_FILE = new("-i", "--input-file")
     {
         Description = "Input script path (restore)",
@@ -69,6 +64,11 @@ public class Program
         Description = "Query timeout for individual statements",
         Default = 10,
     };
+    static readonly Argument<int> ARGUMENT_BATCH_SIZE = new("--batch-size")
+    {
+        Description = "Transaction batch size for query execution (restore)",
+        Default = 100,
+    };
     static readonly IArgument[] ARGUMENTS = new IArgument[] {
         ARGUMENT_SERVER,
         ARGUMENT_DATABASE,
@@ -77,9 +77,9 @@ public class Program
         ARGUMENT_INPUT_FILE,
         ARGUMENT_OUTPUT_FILE,
         ARGUMENT_TIMEOUT,
-        ARGUMENT_VERBOSE,
         ARGUMENT_EXCLUDE_TABLE,
         ARGUMENT_SCHEMA_ONLY,
+        ARGUMENT_BATCH_SIZE,
     };
 
     static readonly Dictionary<string, CommandFn> _commands = new()
@@ -164,7 +164,8 @@ public class Program
 
         foreach (var arg in ARGUMENTS)
         {
-            Console.WriteLine("  {0,-32} {1}", string.Join(", ", arg.Names), arg.Description);
+            var def = arg.GetDefaultAsString() is string s ? $"= {s}" : string.Empty;
+            Console.WriteLine("  {0,-24} {1,-16} {2}", string.Join(", ", arg.Names), def, arg.Description);
         }
 
         Console.WriteLine(@"
@@ -220,10 +221,8 @@ Most arguments should behave exactly like their sqlcmd counterparts.
         }
 
         schemaOpts.ScriptOptions.TypeOfDataToScript = SCRIPT_SCHEMA;
-
-        var verbose = GetNamedArgument(args, ARGUMENT_VERBOSE);
         var schemaOnly = GetNamedArgument(args, ARGUMENT_SCHEMA_ONLY);
-        var ok = await RunScriptRequestAsync(verbose, schemaOpts);
+        var ok = await RunScriptRequestAsync(schemaOpts);
 
         if (!ok)
         {
@@ -255,7 +254,7 @@ Most arguments should behave exactly like their sqlcmd counterparts.
             });
         }
 
-        ok = await RunScriptRequestAsync(verbose, dataOpts);
+        ok = await RunScriptRequestAsync(dataOpts);
 
         if (!ok)
         {
@@ -294,72 +293,87 @@ Most arguments should behave exactly like their sqlcmd counterparts.
         return 0;
     }
 
-    static async Task<int> RestoreAsync(string[] args)
+    static Task<int> RestoreAsync(string[] args)
     {
         if (!EnsureArgumentGiven(args, ARGUMENT_INPUT_FILE, out var inputFile))
         {
-            return 1;
+            return Task.FromResult(1);
         }
 
         if (!File.Exists(inputFile))
         {
             Console.WriteLine("[ERROR] Input file '{0}' does not exist", inputFile);
-            return 1;
+            return Task.FromResult(1);
         }
 
         var connStrBuilder = BuildConnectionString(args);
         if (connStrBuilder == null)
         {
-            return 1;
+            return Task.FromResult(1);
         }
+
         using var conn = new SqlConnection(connStrBuilder.ConnectionString);
-        await conn.OpenAsync();
-        using var engine = new ExecutionEngine();
-        var timeout = GetNamedArgument(args, ARGUMENT_TIMEOUT);
-        var verbose = GetNamedArgument(args, ARGUMENT_VERBOSE);
-        var scriptArgs = new ScriptExecutionArgs(
-            string.Empty, conn, timeout, new ExecutionEngineConditions(), new BatchEventHandler()
-        );
+        conn.Open();
+
+        var batchSize = GetNamedArgument(args, ARGUMENT_BATCH_SIZE);
         var numExecuted = 0;
-        var tstart = DateTime.UtcNow;
-        var batchHandler = new BatchParser
+        var scripts = new List<string>(batchSize);
+        var execHandler = new BatchParser
         {
-            Execute = (batchScript, repeatCount, lineNumber, sqlCmdCommand) =>
+            Execute = (script, repeatCount, lineNumber, sqlCmdCommand) =>
             {
-                scriptArgs.Script = batchScript;
-                engine.ExecuteBatch(scriptArgs);
-
-                numExecuted += 1;
-                if (numExecuted % 100 == 0 && verbose)
+                scripts.Add(script);
+                if (scripts.Count == batchSize)
                 {
+                    numExecuted += ExecuteScripts(conn, scripts);
                     Console.WriteLine("[OK] Executed {0} statements", numExecuted);
+                    scripts.Clear();
                 }
-
                 return true;
             },
             ErrorMessage = (message, messageType) =>
             {
                 Console.WriteLine("[ERROR] {0}", message);
-            }
+            },
         };
 
         using var reader = new StreamReader(inputFile);
-        using var parser = new Parser(
-            batchHandler,
-            batchHandler,
-            reader,
-            Path.GetFileName(inputFile)
-        );
+        using var parser = new Parser(execHandler, execHandler, reader, inputFile);
 
+        var tstart = DateTime.UtcNow;
         parser.Parse();
 
-        if (verbose)
+        // execute any remaining scripts that didn't fit in a batch.
+        numExecuted += ExecuteScripts(conn, scripts);
+
+        var elapsed = DateTime.UtcNow - tstart;
+        Console.WriteLine("[OK] Executed {0} statements in {1} seconds", numExecuted, (int)elapsed.TotalSeconds);
+
+        return Task.FromResult(0);
+    }
+
+    static int ExecuteScripts(SqlConnection conn, IReadOnlyList<string> scripts)
+    {
+        if (scripts.Count == 0)
         {
-            var elapsed = DateTime.UtcNow - tstart;
-            Console.WriteLine("[OK] Executed {0} statements in {1} seconds", numExecuted, (int)elapsed.TotalSeconds);
+            return 0;
         }
 
-        return 0;
+        using var trx = conn.BeginTransaction();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandType = CommandType.Text;
+        cmd.CommandTimeout = conn.ConnectionTimeout;
+        cmd.Transaction = trx;
+
+        foreach (var script in scripts)
+        {
+            cmd.CommandText = script;
+            cmd.ExecuteNonQuery();
+        }
+
+        trx.Commit();
+
+        return scripts.Count;
     }
 
     static ScriptingParams? CreateScriptingParams(string[] args)
@@ -429,7 +443,7 @@ Most arguments should behave exactly like their sqlcmd counterparts.
 
         if (given == null || given.Equals(argument.Default))
         {
-            Console.WriteLine("[ERROR] argument '{0}' was not given", argument.Names[0]);
+            Console.WriteLine("[ERROR] argument '{0}' was not given", argument.Names.Last());
             value = default(T);
             return false;
         }
@@ -438,17 +452,14 @@ Most arguments should behave exactly like their sqlcmd counterparts.
         return true;
     }
 
-    static Task<bool> RunScriptRequestAsync(bool verbose, ScriptingParams opts)
+    static Task<bool> RunScriptRequestAsync(ScriptingParams opts)
     {
         var taskCompletion = new TaskCompletionSource<bool>(false);
         var operation = new ScriptingScriptOperation(opts, null);
 
         operation.ProgressNotification += (sender, args) =>
         {
-            if (verbose)
-            {
-                Console.WriteLine("[{0}/{1}] {2}, {3}, {4}", args.CompletedCount, args.TotalCount, args.Status, args.ScriptingObject.Type, args.ScriptingObject);
-            }
+            Console.WriteLine("[{0}/{1}] {2}, {3}, {4}", args.CompletedCount, args.TotalCount, args.Status, args.ScriptingObject.Type, args.ScriptingObject);
             if (!string.IsNullOrEmpty(args.ErrorMessage))
             {
                 Console.WriteLine("{0}", args.ErrorMessage);
@@ -471,25 +482,5 @@ Most arguments should behave exactly like their sqlcmd counterparts.
         operation.Execute();
 
         return taskCompletion.Task;
-    }
-
-    class BatchEventHandler : IBatchEventsHandler
-    {
-        public SqlError? Error { get; private set; }
-
-        public void OnBatchError(object sender, BatchErrorEventArgs args)
-        {
-            Console.WriteLine("{0}", args.Message);
-            Error = args.Error;
-        }
-
-        public void OnBatchMessage(object sender, BatchMessageEventArgs args)
-        {
-            Console.WriteLine("{0}", args.Message);
-        }
-
-        public void OnBatchResultSetProcessing(object sender, BatchResultSetEventArgs args) { }
-        public void OnBatchResultSetFinished(object sender, EventArgs args) { }
-        public void OnBatchCancelling(object sender, EventArgs args) { }
     }
 }
