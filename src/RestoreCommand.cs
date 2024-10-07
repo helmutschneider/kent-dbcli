@@ -24,23 +24,8 @@ public class RestoreCommand : ICommand
 
     public Task<int> ExecuteAsync(string[] args)
     {
-        if (!Arguments.INPUT_FILE.TryGet(args, out var inputFile))
-        {
-            return Task.FromResult(1);
-        }
-
-        if (!File.Exists(inputFile))
-        {
-            Console.WriteLine("[ERROR] Input file '{0}' does not exist", inputFile);
-            return Task.FromResult(1);
-        }
-
+        var inputFile = Arguments.INPUT_FILE.GetOrDefault(args);
         var connStrBuilder = Arguments.BuildConnectionString(args);
-        if (connStrBuilder == null)
-        {
-            return Task.FromResult(1);
-        }
-
         using var conn = new SqlConnection(connStrBuilder.ConnectionString);
         conn.Open();
 
@@ -55,18 +40,18 @@ public class RestoreCommand : ICommand
                 if (scripts.Count == batchSize)
                 {
                     numExecuted += ExecuteScripts(conn, scripts);
-                    Console.WriteLine("[OK] Executed {0} statements", numExecuted);
+                    Console.WriteLine("OK: executed {0} statements", numExecuted);
                     scripts.Clear();
                 }
                 return true;
             },
             ErrorMessage = (message, messageType) =>
             {
-                Console.WriteLine("[ERROR] {0}", message);
+                Console.WriteLine("Error: {0}", message);
             },
         };
 
-        using var reader = new StreamReader(inputFile);
+        using var reader = new StreamReader(inputFile!);
         using var parser = new Parser(execHandler, execHandler, reader, inputFile);
 
         var tstart = DateTime.UtcNow;
@@ -76,7 +61,7 @@ public class RestoreCommand : ICommand
         numExecuted += ExecuteScripts(conn, scripts);
 
         var elapsed = DateTime.UtcNow - tstart;
-        Console.WriteLine("[OK] Executed {0} statements in {1} seconds", numExecuted, (int)elapsed.TotalSeconds);
+        Console.WriteLine("OK: executed {0} statements in {1} seconds", numExecuted, (int)elapsed.TotalSeconds);
 
         return Task.FromResult(0);
     }

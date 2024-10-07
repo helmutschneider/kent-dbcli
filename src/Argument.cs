@@ -8,7 +8,7 @@ public class Argument<T> : IArgument
 {
     public string[] Names { get; }
     public string Description { get; init; } = string.Empty;
-    public bool Required { get; init; } = false;
+    public bool IsRequired { get; init; } = false;
     public T? Default { get; init; } = default(T);
 
     public Argument(string name, params string[] names)
@@ -55,27 +55,6 @@ public class Argument<T> : IArgument
         }
 
         return values;
-    }
-
-    public bool TryGet(string[] args, out T? value)
-    {
-        if (!this.Required)
-        {
-            value = this.Default;
-            return true;
-        }
-
-        var given = GetOrDefault(args);
-
-        if (given == null || given.Equals(this.Default))
-        {
-            Console.WriteLine("[ERROR] argument '{0}' was not given", this.Names.Last());
-            value = default(T);
-            return false;
-        }
-
-        value = given;
-        return true;
     }
 
     public T? Parse(string value)

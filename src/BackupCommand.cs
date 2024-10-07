@@ -51,7 +51,7 @@ public class BackupCommand : ICommand
 
         if (schemaOnly)
         {
-            Console.WriteLine($"[OK] Script written to '{schemaOpts.FilePath}'");
+            Console.WriteLine($"OK: script written to '{schemaOpts.FilePath}'");
             return 0;
         }
 
@@ -108,7 +108,7 @@ public class BackupCommand : ICommand
         }
 
         File.Delete(dataOpts.FilePath);
-        Console.WriteLine($"[OK] Script written to '{schemaOpts.FilePath}'");
+        Console.WriteLine($"OK: script written to '{schemaOpts.FilePath}'");
 
         return 0;
     }
@@ -175,7 +175,7 @@ public class BackupCommand : ICommand
 
         operation.ProgressNotification += (sender, args) =>
         {
-            Console.WriteLine("[{0}/{1}] {2}, {3}, {4}", args.CompletedCount, args.TotalCount, args.Status, args.ScriptingObject.Type, args.ScriptingObject);
+            Console.WriteLine("{0}/{1}: {2}, {3}, {4}", args.CompletedCount, args.TotalCount, args.Status, args.ScriptingObject.Type, args.ScriptingObject);
             if (!string.IsNullOrEmpty(args.ErrorMessage))
             {
                 Console.WriteLine("{0}", args.ErrorMessage);

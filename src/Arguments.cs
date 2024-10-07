@@ -19,7 +19,7 @@ public static class Arguments
     public static readonly Argument<string> DATABASE = new("-d", "--database-name")
     {
         Description = "Database name",
-        Required = true,
+        IsRequired = true,
     };
 
     public static readonly Argument<string> USER = new("-U", "--user-name")
@@ -37,7 +37,7 @@ public static class Arguments
     public static readonly Argument<string> INPUT_FILE = new("-i", "--input-file")
     {
         Description = "Input script path",
-        Required = true,
+        IsRequired = true,
     };
 
     public static readonly Argument<string> OUTPUT_FILE = new("-o", "--output-file")
@@ -67,14 +67,10 @@ public static class Arguments
         Default = 100,
     };
 
-    public static SqlConnectionStringBuilder? BuildConnectionString(string[] args)
+    public static SqlConnectionStringBuilder BuildConnectionString(string[] args)
     {
         var server = SERVER.GetOrDefault(args);
-        if (!DATABASE.TryGet(args, out var dbName))
-        {
-            return null;
-        }
-
+        var dbName = DATABASE.GetOrDefault(args);
         var isLocalDb = !string.IsNullOrEmpty(server)
             && server.StartsWith("(localdb)", StringComparison.OrdinalIgnoreCase);
 
@@ -92,5 +88,18 @@ public static class Arguments
         };
 
         return connStrBuilder;
+    }
+
+    public static bool Exists(IArgument arg, string[] args)
+    {
+        for (var i = 0; i < args.Length; ++i)
+        {
+            var maybeName = args[i].Trim();
+            if (arg.Names.Contains(maybeName))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }

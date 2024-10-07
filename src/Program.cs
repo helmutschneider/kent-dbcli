@@ -12,6 +12,7 @@ public class Program
         ["backup"] = new BackupCommand(),
         ["restore"] = new RestoreCommand(),
     };
+    static readonly IReadOnlyList<string> _usageAliases = new[] { "usage", "help", "--help" };
 
     public static async Task<int> Main(string[] args)
     {
@@ -22,22 +23,41 @@ public class Program
         }
         var name = args[0];
         var cmd = _commands.GetValueOrDefault(name);
-        var needsHelp = args.Length == 0
-            || (args.Length >= 1 && "help".Equals(args[0], StringComparison.OrdinalIgnoreCase))
-            || (args.Length >= 1 && "--help".Equals(args[0], StringComparison.OrdinalIgnoreCase));
+        var needsHelp = args.Length >= 1
+            && _usageAliases.Any((x) => x.Equals(args[0], StringComparison.OrdinalIgnoreCase));
             
         if (cmd == null || needsHelp)
         {
             Usage();
             return 1;
         }
-        var code = await cmd.ExecuteAsync(args.Skip(1).ToArray());
+        var cmdArgs = args.Skip(1).ToArray();
+        var hasRequiredArguments = true;
+
+        foreach (var arg in cmd.AcceptsArguments)
+        {
+            if (arg.IsRequired && !Arguments.Exists(arg, cmdArgs))
+            {
+                Console.WriteLine("Error: argument '{0}' was not given", arg.Names.Last());
+                hasRequiredArguments = false;
+            }
+        }
+
+        if (!hasRequiredArguments)
+        {
+            Console.WriteLine(string.Empty);
+            Usage();
+            return 1;
+        }
+
+        var code = await cmd.ExecuteAsync(cmdArgs);
         return code;
     }
 
     static void Usage()
     {
         Console.WriteLine("Usage:");
+        Console.WriteLine(string.Empty);
         foreach (var (name, cmd) in _commands)
         {
             Console.WriteLine("  {0}", name);
