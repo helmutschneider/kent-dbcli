@@ -12,7 +12,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 env:
-  DOTNET_VERSION: 6.0.x
+  DOTNET_VERSION: 8.0.x
   BUILD_VERSION: ${{ inputs.version || github.ref_name }}
 jobs:
   build:
