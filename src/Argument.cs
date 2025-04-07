@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Kent.DbCli;
 
@@ -87,8 +88,43 @@ public class Argument<T> : IArgument
                     return (T)(object)x;
                 }
                 break;
+            case Argument<Bytes>:
+                if (!valueLooksLikeArgument && TryParseBytes(value, out var b))
+                {
+                    return (T)(object)b;
+                }
+                break;
         }
 
         return this.Default;
+    }
+
+    public static bool TryParseBytes(string value, out Bytes parsed)
+    {
+        var match = Regex.Match(value, @"(\d+)\s*([a-z])?", RegexOptions.IgnoreCase);
+        if (!match.Success)
+        {
+            parsed = null!;
+            return false;
+        }
+
+        var num = int.Parse(match.Groups[1].Value);
+        var multipliter = 1;
+
+        if (match.Groups.Count == 3)
+        {
+            multipliter = match.Groups[2].Value.ToLower() switch
+            {
+                "g" => 1_000_000_000,
+                "m" => 1_000_000,
+                "k" => 1_000,
+                "b" => 1,
+                _ => 1,
+            };
+        }
+
+        parsed = new Bytes(value, num * multipliter);
+
+        return true;
     }
 }

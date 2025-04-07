@@ -61,10 +61,10 @@ public static class Arguments
         Default = 10,
     };
     
-    public static readonly Argument<int> BATCH_SIZE = new("--batch-size")
+    public static readonly Argument<Bytes> BATCH_SIZE = new("--batch-size")
     {
-        Description = "Transaction batch size for query execution",
-        Default = 100,
+        Description = "Transaction batch size",
+        Default = new("1M", 1_000_000),
     };
 
     public static SqlConnectionStringBuilder BuildConnectionString(string[] args)

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using Microsoft.SqlTools.ServiceLayer.BatchParser;
@@ -31,17 +33,23 @@ public class RestoreCommand : ICommand
 
         var batchSize = Arguments.BATCH_SIZE.GetOrDefault(args);
         var numExecuted = 0;
-        var scripts = new List<string>(batchSize);
+        var scriptStr = new StringBuilder(batchSize!.Value);
+        var numStatements = 0;
         var execHandler = new BatchParser
         {
             Execute = (script, repeatCount, lineNumber, sqlCmdCommand) =>
             {
-                scripts.Add(script);
-                if (scripts.Count == batchSize)
+                if (!string.IsNullOrWhiteSpace(script))
                 {
-                    numExecuted += ExecuteScripts(conn, scripts);
+                    scriptStr.Append(script);
+                    numStatements += 1;
+                }
+                if (scriptStr.Length >= batchSize.Value)
+                {
+                    numExecuted += ExecuteScript(conn, scriptStr.ToString(), numStatements);
                     Console.WriteLine("OK: executed {0} statements", numExecuted);
-                    scripts.Clear();
+                    scriptStr.Clear();
+                    numStatements = 0;
                 }
                 return true;
             },
@@ -58,7 +66,7 @@ public class RestoreCommand : ICommand
         parser.Parse();
 
         // execute any remaining scripts that didn't fit in a batch.
-        numExecuted += ExecuteScripts(conn, scripts);
+        numExecuted += ExecuteScript(conn, scriptStr.ToString(), numStatements);
 
         var elapsed = DateTime.UtcNow - tstart;
         Console.WriteLine("OK: executed {0} statements in {1} seconds", numExecuted, (int)elapsed.TotalSeconds);
@@ -66,9 +74,9 @@ public class RestoreCommand : ICommand
         return Task.FromResult(0);
     }
 
-    static int ExecuteScripts(SqlConnection conn, IReadOnlyList<string> scripts)
+    static int ExecuteScript(SqlConnection conn, string script, int numStatements)
     {
-        if (scripts.Count == 0)
+        if (numStatements == 0)
         {
             return 0;
         }
@@ -76,17 +84,12 @@ public class RestoreCommand : ICommand
         using var trx = conn.BeginTransaction();
         using var cmd = conn.CreateCommand();
         cmd.CommandType = CommandType.Text;
+        cmd.CommandText = script;
         cmd.CommandTimeout = conn.ConnectionTimeout;
         cmd.Transaction = trx;
-
-        foreach (var script in scripts)
-        {
-            cmd.CommandText = script;
-            cmd.ExecuteNonQuery();
-        }
-
+        cmd.ExecuteNonQuery();
         trx.Commit();
 
-        return scripts.Count;
+        return numStatements;
     }
 }
