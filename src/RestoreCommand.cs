@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -33,23 +34,40 @@ public class RestoreCommand : ICommand
 
         var batchSize = Arguments.BATCH_SIZE.GetOrDefault(args);
         var numExecuted = 0;
-        var scriptStr = new StringBuilder(batchSize!.Value);
+        var batch = new StringBuilder(batchSize!.Value);
         var numStatements = 0;
+
         var execHandler = new BatchParser
         {
             Execute = (script, repeatCount, lineNumber, sqlCmdCommand) =>
             {
-                if (!string.IsNullOrWhiteSpace(script))
+                script = script.Trim();
+
+                if (string.IsNullOrEmpty(script))
                 {
-                    scriptStr.Append(script);
-                    numStatements += 1;
+                    return true;
                 }
-                if (scriptStr.Length >= batchSize.Value)
+
+                if (MustExecuteAlone(script))
                 {
-                    numExecuted += ExecuteScript(conn, scriptStr.ToString(), numStatements);
-                    Console.WriteLine("OK: executed {0} statements", numExecuted);
-                    scriptStr.Clear();
+                    numExecuted += ExecuteBatch(conn, batch.ToString(), numStatements);
+                    batch.Clear();
                     numStatements = 0;
+                    numExecuted += ExecuteBatch(conn, script, 1);
+                    Console.WriteLine("OK: executed {0} statements", numExecuted);
+                    return true;
+                }
+
+                batch.Append(script);
+                batch.Append(";\n");
+                numStatements += 1;
+
+                if (batch.Length >= batchSize.Value)
+                {
+                    numExecuted += ExecuteBatch(conn, batch.ToString(), numStatements);
+                    batch.Clear();
+                    numStatements = 0;
+                    Console.WriteLine("OK: executed {0} statements", numExecuted);
                 }
                 return true;
             },
@@ -62,19 +80,19 @@ public class RestoreCommand : ICommand
         using var reader = new StreamReader(inputFile!);
         using var parser = new Parser(execHandler, execHandler, reader, inputFile);
 
-        var tstart = DateTime.UtcNow;
+        var ts = Stopwatch.StartNew();
         parser.Parse();
 
         // execute any remaining scripts that didn't fit in a batch.
-        numExecuted += ExecuteScript(conn, scriptStr.ToString(), numStatements);
+        numExecuted += ExecuteBatch(conn, batch.ToString(), numStatements);
 
-        var elapsed = DateTime.UtcNow - tstart;
-        Console.WriteLine("OK: executed {0} statements in {1} seconds", numExecuted, (int)elapsed.TotalSeconds);
+        ts.Stop();
+        Console.WriteLine("OK: executed {0} statements in {1} seconds", numExecuted, (int)ts.Elapsed.TotalSeconds);
 
         return Task.FromResult(0);
     }
 
-    static int ExecuteScript(SqlConnection conn, string script, int numStatements)
+    static int ExecuteBatch(SqlConnection conn, string batch, int numStatements)
     {
         if (numStatements == 0)
         {
@@ -84,12 +102,18 @@ public class RestoreCommand : ICommand
         using var trx = conn.BeginTransaction();
         using var cmd = conn.CreateCommand();
         cmd.CommandType = CommandType.Text;
-        cmd.CommandText = script;
+        cmd.CommandText = batch;
         cmd.CommandTimeout = conn.ConnectionTimeout;
         cmd.Transaction = trx;
         cmd.ExecuteNonQuery();
         trx.Commit();
 
         return numStatements;
+    }
+
+    static bool MustExecuteAlone(string script)
+    {
+        return script.StartsWith("create database", StringComparison.OrdinalIgnoreCase)
+            || script.StartsWith("create schema", StringComparison.OrdinalIgnoreCase);
     }
 }
