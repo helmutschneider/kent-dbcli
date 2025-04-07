@@ -5,7 +5,8 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.SqlTools.ServiceLayer.Scripting;
-using Microsoft.SqlTools.ServiceLayer.Scripting.Contracts;
+using Microsoft.SqlTools.SqlCore.Scripting;
+using Microsoft.SqlTools.SqlCore.Scripting.Contracts;
 
 namespace Kent.DbCli;
 

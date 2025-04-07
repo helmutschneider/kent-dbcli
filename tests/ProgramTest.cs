@@ -179,7 +179,8 @@ public class ProgramTest : IClassFixture<DatabaseFixture>, IDisposable
 
     public void Dispose()
     {
-        _db.ExecuteSql("TRUNCATE TABLE [Car]");
+        _db.ExecuteSql("delete from [Car]");
+        _db.ExecuteSql("drop table if exists [Boat]");
     }
 
     static string? FindSolutionPath()

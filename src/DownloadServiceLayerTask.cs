@@ -15,9 +15,9 @@ public class DownloadServiceLayerTask : Task
 {   
     static readonly (string, string)[] Tarballs = new[]
     {
-        ("osx-arm64", "https://github.com/microsoft/sqltoolsservice/releases/download/4.5.0.15/Microsoft.SqlTools.ServiceLayer-osx-arm64-net6.0.tar.gz"),
-        ("linux-x64", "https://github.com/microsoft/sqltoolsservice/releases/download/4.5.0.15/Microsoft.SqlTools.ServiceLayer-rhel-x64-net6.0.tar.gz"),
-        ("win-x64", "https://github.com/microsoft/sqltoolsservice/releases/download/4.5.0.15/Microsoft.SqlTools.ServiceLayer-win-x64-net6.0.zip"),
+        ("osx-arm64", "https://github.com/microsoft/sqltoolsservice/releases/download/5.0.20250402.1/Microsoft.SqlTools.ServiceLayer-osx-arm64-net8.0.tar.gz"),
+        ("linux-x64", "https://github.com/microsoft/sqltoolsservice/releases/download/5.0.20250402.1/Microsoft.SqlTools.ServiceLayer-linux-x64-net8.0.tar.gz"),
+        ("win-x64", "https://github.com/microsoft/sqltoolsservice/releases/download/5.0.20250402.1/Microsoft.SqlTools.ServiceLayer-win-x64-net8.0.zip"),
     };
 
     public string ServiceLayerPath { get; set; } = string.Empty;

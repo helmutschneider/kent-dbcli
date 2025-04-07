@@ -4,7 +4,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>Kent.DbCli</RootNamespace>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -37,6 +37,9 @@
   <ItemGroup>
     <Reference Include="MicrosoftSqlToolsServiceLayer.dll">
       <HintPath>$(ServiceLayerPath)\MicrosoftSqlToolsServiceLayer.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.SqlTools.SqlCore.dll">
+      <HintPath>$(ServiceLayerPath)\Microsoft.SqlTools.SqlCore.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.SqlTools.ManagedBatchParser.dll">
       <HintPath>$(ServiceLayerPath)\Microsoft.SqlTools.ManagedBatchParser.dll</HintPath>
