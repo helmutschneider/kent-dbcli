@@ -11,6 +11,7 @@ public class Program
     {
         ["backup"] = new BackupCommand(),
         ["restore"] = new RestoreCommand(),
+        ["restore-bak"] = new RestoreBakCommand(),
     };
     static readonly IReadOnlyList<string> _usageAliases = new[] { "usage", "help", "--help" };
 
