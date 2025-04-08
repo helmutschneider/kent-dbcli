@@ -1,17 +1,23 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Kent.DbCli;
 
 public class Program
 {
+    static string Version { get; } = "Kent.DbCli " + typeof(Program)
+        .Assembly
+        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+        ?.InformationalVersion ?? "dev";
     static readonly Dictionary<string, ICommand> _commands = new(StringComparer.OrdinalIgnoreCase)
     {
         ["backup"] = new BackupCommand(),
         ["restore"] = new RestoreCommand(),
         ["restore-bak"] = new RestoreBakCommand(),
+        ["--version"] = new EchoCommand(Version),
     };
     static readonly IReadOnlyList<string> _usageAliases = new[] { "usage", "help", "--help" };
 
@@ -26,7 +32,7 @@ public class Program
         var cmd = _commands.GetValueOrDefault(name);
         var needsHelp = args.Length >= 1
             && _usageAliases.Any((x) => x.Equals(args[0], StringComparison.OrdinalIgnoreCase));
-            
+
         if (cmd == null || needsHelp)
         {
             Usage();
@@ -57,6 +63,7 @@ public class Program
 
     static void Usage()
     {
+        Console.WriteLine(Version);
         Console.WriteLine("Usage:");
         Console.WriteLine(string.Empty);
         foreach (var (name, cmd) in _commands)

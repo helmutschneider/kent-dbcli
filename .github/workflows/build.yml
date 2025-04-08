@@ -1,19 +1,13 @@
 name: Build
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: Build version
-        default: ''
-        required: false
-        type: string
+
 # https://docs.github.com/en/actions/using-jobs/using-concurrency
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 env:
   DOTNET_VERSION: 8.0.x
-  BUILD_VERSION: ${{ inputs.version || github.ref_name }}
 jobs:
   build:
     runs-on: macos-14
@@ -24,6 +18,9 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - name: Build
         run: |
+          COMMIT_HASH=$(echo "${GITHUB_SHA}" | cut -c1-9)
+          BUILD_VERSION="${GITHUB_REF_NAME}-${COMMIT_HASH}"
+
           ./build.sh "${BUILD_VERSION}"
       - uses: actions/upload-artifact@v4
         with:

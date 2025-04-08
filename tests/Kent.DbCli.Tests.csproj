@@ -10,6 +10,7 @@
     <WarningsAsErrors>Nullable</WarningsAsErrors>
     <IsPackable>false</IsPackable>
     <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>

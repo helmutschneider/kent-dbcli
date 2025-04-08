@@ -32,6 +32,7 @@ for RUNTIME in "win-x64" "linux-x64" "osx-arm64"; do
     --no-cache \
     --self-contained \
     -p:PublishSingleFile=true \
+    -p:InformationalVersion="${VERSION}" \
     --runtime "${RUNTIME}" \
     --output "${BUILD_DIR}"
 
